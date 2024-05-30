@@ -3,19 +3,16 @@
  (wrapped false)
  (modules dream)
  (libraries
-  caqti-lwt
   dream.cipher
-  dream.graphql
+  ; dream.graphql  TODO Restore.
   dream.http
   dream.server
   dream.unix
   (re_export dream-pure)
   dream.sql
+  eio
   fmt.tty
-  graphql-lwt
   logs
-  lwt
-  lwt.unix
   mirage-crypto-rng
   mirage-crypto-rng.unix
 ))

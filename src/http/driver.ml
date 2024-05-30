@@ -5,6 +5,8 @@
 
 
 
+module Cohttp_http = Http
+
 module Catch = Dream__server.Catch
 module Helpers = Dream__server.Helpers
 module Log = Dream__server.Log
@@ -19,14 +21,95 @@ module Stream = Dream_pure.Stream
 
 
 
-let to_dream_method method_ =
-  Httpun.Method.to_string method_ |> Method.string_to_method
+(* TODO Move somewhere. *)
+module Stream_adapter =
+struct
+  type t = {
+    response : Message.response;
+    mutable closed : bool;
+    mutable chunk : Stream.buffer option;
+  }
 
-let to_httpun_status status =
-  Status.status_to_int status |> Httpun.Status.of_code
+  let create response = {
+    response;
+    closed = false;
+    chunk = None;
+  }
+
+  let read_methods = []
+
+  (* TODO Flush? *)
+  let rec single_read stream destination =
+    if stream.closed then
+      raise End_of_file
+    else
+      match stream.chunk with
+      | Some chunk ->
+        let chunk_length = Bigarray.Array1.dim chunk in
+        let bytes_to_provide = min chunk_length (Cstruct.length destination) in
+        let cstruct = Cstruct.buffer ~len:bytes_to_provide chunk in
+        Cstruct.blit cstruct 0 destination 0 bytes_to_provide;
+        begin
+          if bytes_to_provide = chunk_length then
+            stream.chunk <- None
+          else
+            let chunk =
+              Bigarray.Array1.sub
+                chunk bytes_to_provide (chunk_length - bytes_to_provide) in
+            stream.chunk <- Some chunk
+        end;
+        bytes_to_provide
+      | None ->
+        (* TODO This seems like the sort of code that would deadlock in some
+           circumstances; requires careful consideration. *)
+        let chunk_promise, resolver = Eio.Promise.create () in
+        let rec chunk_loop () =
+          Stream.read
+            (Message.client_stream stream.response)
+            ~data:begin fun chunk offset length _binary _fin ->
+              if length = 0 then
+                chunk_loop ()
+              else
+                let chunk = Bigarray.Array1.sub chunk offset length in
+                stream.chunk <- Some chunk;
+                single_read stream destination
+                |> Eio.Promise.resolve_ok resolver
+            end
+            ~flush:(fun () -> chunk_loop ())
+            ~ping:(fun _buffer _length _offset -> chunk_loop ())
+            ~pong:(fun _buffer _length _offset -> chunk_loop ())
+            ~close:(fun _code ->
+              stream.closed <- true;
+              Eio.Promise.resolve_error resolver End_of_file)
+            ~exn:(fun exn ->
+              stream.closed <- true;
+              Eio.Promise.resolve_error resolver exn)
+        in
+        chunk_loop ();
+        Eio.Promise.await_exn chunk_promise
+end
+
+
+
+let to_dream_method : Cohttp_http.Method.t -> Method.method_ = function
+  | `GET -> `GET
+  | `POST -> `POST
+  | `HEAD -> `HEAD
+  | `DELETE -> `DELETE
+  | `PATCH -> `PATCH
+  | `PUT -> `PUT
+  | `OPTIONS -> `OPTIONS
+  | `TRACE -> `TRACE
+  | `CONNECT -> `CONNECT
+  | `Other method_ -> `Method method_
+
+(* TODO Adapt
+let to_httpaf_status status =
+  Status.status_to_int status |> Httpaf.Status.of_code
 
 let to_h2_status status =
   Status.status_to_int status |> H2.Status.of_code
+*)
 
 let sha1 s =
   s
@@ -66,40 +149,44 @@ let wrap_handler
     (user's_error_handler : Catch.error_handler)
     (user's_dream_handler : Message.handler) =
 
-  let httpaf_request_handler =
-      fun unix_socket client_address (conn : _ Gluten.Reqd.t) ->
+  ignore user's_error_handler;
+
+  let httpaf_request_handler
+      (connection : Cohttp_eio.Server.conn)
+      (request : Cohttp_http.Request.t)
+      (body : Cohttp_eio.Server.body)
+      : (Cohttp_http.Response.t * Cohttp_eio.Server.body) =
 
     Log.set_up_exception_hook ();
 
-    let conn, upgrade = conn.reqd, conn.upgrade in
-
-    (* Covert the http/af request to a Dream request. *)
-    let httpaf_request : Httpun.Request.t =
-      Httpun.Reqd.request conn in
+    (* Convert the Cohttp request to a Dream request. *)
 
     let client =
-      Adapt.address_to_string client_address in
+      Adapt.address_to_string (snd (fst connection)) in
     let method_ =
-      to_dream_method httpaf_request.meth in
+      to_dream_method (Cohttp_http.Request.meth request) in
     let target =
-      httpaf_request.target in
+      Cohttp_http.Request.resource request in
     let headers =
-      Httpun.Headers.to_list httpaf_request.headers in
+      Cohttp_http.Header.to_list (Cohttp_http.Request.headers request) in
 
-    let body =
-      Httpun.Reqd.request_body conn in
     (* TODO Review per-chunk allocations. *)
     (* TODO Should the stream be auto-closed? It doesn't even have a closed
        state. The whole thing is just a wrapper for whatever the http/af
        behavior is. *)
-    let read ~data ~flush:_ ~ping:_ ~pong:_ ~close ~exn:_ =
-      Httpun.Body.Reader.schedule_read
-        body
-        ~on_eof:(fun () -> close 1000)
-        ~on_read:(fun buffer ~off ~len -> data buffer off len true false)
+    let read_buffer = Cstruct.create 16384 in
+    let read ~data ~flush:_ ~ping:_ ~pong:_ ~close ~exn =
+      try
+        let bytes_read = Eio.Flow.single_read body read_buffer in
+        let slice = Cstruct.sub read_buffer 0 bytes_read in
+        data (Cstruct.to_bigarray slice) 0 bytes_read true false
+      with
+      | End_of_file -> close 1000
+      | exn' -> exn exn'
     in
-    let close _code =
-      Httpun.Body.Reader.close body in
+    (* let close _code =
+      Eio.Flow.close body in *)
+    let close = ignore in
     let body =
       Stream.reader ~read ~close ~abort:close in
     let body =
@@ -108,7 +195,15 @@ let wrap_handler
     let request : Message.request =
       Helpers.request ~client ~method_ ~target ~tls ~headers body in
 
-    set_fd request unix_socket;
+    let response = user's_dream_handler request in
+
+    let response_body =
+      Eio.Resource.T
+        (Stream_adapter.create response,
+        Eio.Flow.Pi.source (module Stream_adapter)) in
+
+    Cohttp_eio.Server.respond ~status:`OK ~body:response_body ()
+  in
 
     (* Call the user's handler. If it raises an exception or returns a promise
        that rejects with an exception, pass the exception up to Httpun. This
@@ -120,6 +215,7 @@ let wrap_handler
        customizable here. The handler itself is customizable (to catch all)
        exceptions, and the error callback that gets leaked exceptions is also
        customizable. *)
+    (* TODO Restore.
     Lwt.async begin fun () ->
       Lwt.catch begin fun () ->
         (* Do the big call. *)
@@ -188,11 +284,13 @@ let wrap_handler
         Lwt.return_unit
     end
   in
+  *)
 
   httpaf_request_handler
 
 
 
+(* TODO Restore
 (* TODO Factor out what is in common between the http/af and h2 handlers. *)
 let wrap_handler_h2
     tls
@@ -290,6 +388,7 @@ let wrap_handler_h2
   in
 
   httpaf_request_handler
+*)
 
 
 
@@ -298,6 +397,7 @@ let log =
 
 
 
+(*
 type tls_library = {
   create_handler :
     certificate_file:string ->
@@ -411,11 +511,12 @@ let ocaml_tls = {
         client_address
         unix_socket
 }
+*)
 
 
 
 let check_headers_middleware next_handler request =
-  let%lwt response = next_handler request in
+  let response = next_handler request in
   let invalid_headers_exist =
     Message.all_headers response
     |> List.exists (fun (name, _) -> String.trim name = "")
@@ -423,7 +524,7 @@ let check_headers_middleware next_handler request =
   if invalid_headers_exist then
     log.warning (fun log ->
       log ~request "A response header is empty or contains only whitespace");
-  Lwt.return response
+  response
 
 let built_in_middleware error_handler =
   Message.pipeline [
@@ -434,6 +535,7 @@ let built_in_middleware error_handler =
 let serve_with_details
     caller_function_for_error_messages
     tls_library
+    ~capability
     ~interface
     ~network
     ~stop
@@ -442,6 +544,11 @@ let serve_with_details
     ~key_file
     ~builtins
     user's_dream_handler =
+
+  ignore certificate_file;
+  ignore key_file;
+  ignore stop;
+  ignore tls_library;
 
   (* TODO DOC *)
   (* https://letsencrypt.org/docs/certificates-for-localhost/ *)
@@ -454,16 +561,14 @@ let serve_with_details
   in
 
   (* Create the wrapped httpaf or h2 handler from the user's Dream handler. *)
-  let httpaf_connection_handler =
-    tls_library.create_handler
-      ~certificate_file
-      ~key_file
-      ~handler:user's_dream_handler
-      ~error_handler
-  in
+  let cohttp_server =
+    Cohttp_eio.Server.make
+      () ~callback:(wrap_handler false error_handler user's_dream_handler) in
 
   (* TODO Should probably move out to the TLS library options. *)
+  (* TODO Restore
   let tls_error_handler = Error_handler.tls error_handler in
+  *)
 
   (* Some parts of the various HTTP servers that are under heavy development
      ( *cough* Gluten SSL/TLS at the moment) leak exceptions out of the
@@ -480,6 +585,7 @@ let serve_with_details
      be pattern matching on the exception (but that might introduce dependency
      coupling), or the upstream should be patched to distinguish the errors in
      some useful way. *)
+  (* TODO Restore
   let httpaf_connection_handler client_address socket =
     Lwt.catch
       (fun () ->
@@ -488,34 +594,49 @@ let serve_with_details
         tls_error_handler client_address exn;
         Lwt.return_unit)
   in
+  *)
 
   (* Look up the low-level address corresponding to the interface. Hopefully,
      this is a local interface. *)
-  let%lwt listen_address =
+  let listen_address =
     match network with
     | `Unix path ->
-      Lwt.return (Lwt_unix.ADDR_UNIX path)
+      `Unix path
     | `Inet port ->
-      let%lwt addresses =
-        Lwt_unix.getaddrinfo interface (string_of_int port) [] in
+      let addresses =
+        Eio.Net.getaddrinfo_stream
+          capability interface ~service:(string_of_int port) in
       match addresses with
       | [] ->
         Printf.ksprintf failwith "Dream.%s: no interface with address %s"
           caller_function_for_error_messages interface
       | address::_ ->
-        Lwt.return Lwt_unix.(address.ai_addr)
+        address
   in
+
+  (* TODO Value of the backlog argument? *)
+  Eio.Switch.run begin fun sw ->
+    let socket =
+      Eio.Net.listen
+        ~sw capability listen_address ~reuse_addr:true ~backlog:1000 in
+
+    (* TODO The error handler. *)
+    Cohttp_eio.Server.run ~on_error:raise socket cohttp_server
+    |> ignore
+  end
+
+  (* TODO Use stop. *)
 
   (* Bring up the HTTP server. Wait for the server to actually get started.
      Then, wait for the ~stop promise. If the ~stop promise ever resolves, stop
      the server. *)
-  let%lwt server =
+  (* let%lwt server =
     Lwt_io.establish_server_with_client_socket
       listen_address
       httpaf_connection_handler in
 
   let%lwt () = stop in
-  Lwt_io.shutdown_server server
+  Lwt_io.shutdown_server server *)
 
 
 
@@ -524,6 +645,7 @@ let is_localhost interface =
 
 let serve_with_maybe_https
     caller_function_for_error_messages
+    ~capability
     ~interface
     ~network
     ~stop
@@ -534,7 +656,12 @@ let serve_with_maybe_https
     ~builtins
     user's_dream_handler =
 
-  try%lwt
+  ignore certificate_file;
+  ignore certificate_string;
+  ignore key_file;
+  ignore key_string;
+
+  try
     (* This check will at least catch secrets like "foo" when used on a public
        interface. *)
     (* if not (is_localhost interface) then
@@ -549,7 +676,8 @@ let serve_with_maybe_https
     | `No ->
       serve_with_details
         caller_function_for_error_messages
-        no_tls
+        (* TODO no_tls *) ()
+        ~capability
         ~interface
         ~network
         ~stop
@@ -559,6 +687,7 @@ let serve_with_maybe_https
         ~builtins
         user's_dream_handler
 
+(* TODO Restore
     | `OpenSSL | `OCaml_TLS as tls_library ->
       (* TODO Writing temporary files is extremely questionable for anything
          except the fake localhost certificate. This needs loud warnings. IIRC
@@ -654,7 +783,7 @@ let serve_with_maybe_https
 
         end
         end
-
+*)
   with exn ->
     let backtrace = Printexc.get_backtrace () in
     log.error (fun log ->
@@ -668,7 +797,7 @@ let serve_with_maybe_https
 
 let default_interface = "localhost"
 let default_port = 8080
-let never = fst (Lwt.wait ())
+(* let never = fst (Lwt.wait ()) TODO *)
 
 let network ~port ~socket_path =
   match socket_path with
@@ -679,21 +808,24 @@ let serve
     ?(interface = default_interface)
     ?(port = default_port)
     ?socket_path
-    ?(stop = never)
+    ?(stop = ()) (* TODO *)
     ?(error_handler = Error_handler.default)
     ?(tls = false)
     ?certificate_file
     ?key_file
     ?(builtins = true)
+    capability
     user's_dream_handler =
 
+  ignore tls;
   serve_with_maybe_https
     "serve"
+    ~capability:capability#net
     ~interface
     ~network:(network ~port ~socket_path)
     ~stop
     ~error_handler
-    ~tls:(if tls then `OpenSSL else `No)
+    (* ~tls:(if tls then `OpenSSL else `No) TODO *) ~tls:`No
     ?certificate_file
     ?key_file
     ?certificate_string:None
@@ -707,7 +839,7 @@ let run
     ?(interface = default_interface)
     ?(port = default_port)
     ?socket_path
-    ?(stop = never)
+    ?(stop = ()) (* TODO *)
     ?(error_handler = Error_handler.default)
     ?(tls = false)
     ?certificate_file
@@ -749,16 +881,23 @@ let run
     log "Type Ctrl+C to stop"
   end;
 
-  Lwt_main.run begin
-    serve_with_maybe_https
-      "run"
-      ~interface
-      ~network:(network ~port ~socket_path)
-      ~stop
-      ~error_handler
-      ~tls:(if tls then `OpenSSL else `No)
-      ?certificate_file ?key_file
-      ?certificate_string:None ?key_string:None
-      ~builtins
-      user's_dream_handler
-  end
+  try
+    (* Lwt_main.run begin TODO *)
+      serve_with_maybe_https
+        "run"
+        ~capability:capability#net
+        ~interface
+        ~network:(network ~port ~socket_path)
+        ~stop
+        ~error_handler
+        (* ~tls:(if tls then `OpenSSL else `No) TODO *) ~tls:`No
+        ?certificate_file ?key_file
+        ?certificate_string:None ?key_string:None
+        ~builtins
+        user's_dream_handler
+    (* end; TODO *) ;
+    restore_terminal ()
+
+  with exn ->
+    restore_terminal ();
+    raise exn

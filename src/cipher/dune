@@ -8,5 +8,4 @@
   mirage-crypto
   mirage-crypto-rng
  )
- (preprocess (pps lwt_ppx))
  (instrumentation (backend bisect_ppx)))
