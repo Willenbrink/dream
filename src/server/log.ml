@@ -97,10 +97,6 @@ let get_request_id ?request () =
   *)
   request_id
 
-(* The current state of the request id sequence. *)
-let last_id =
-  ref 0
-
 
 
 (* TODO Nice logging for multiline strings? *)
@@ -138,11 +134,11 @@ let reporter ~now () =
 
     let level_style, level =
       match level with
-      | Logs.App ->     `White,   "     "
-      | Logs.Error ->   `Red,     "ERROR"
-      | Logs.Warning -> `Yellow,  " WARN"
-      | Logs.Info ->    `Green,   " INFO"
-      | Logs.Debug ->   `Blue,    "DEBUG"
+      | Logs.App ->     `White,   "   "
+      | Logs.Error ->   `Red,     "ERR"
+      | Logs.Warning -> `Yellow,  "WRN"
+      | Logs.Info ->    `Green,   "INF"
+      | Logs.Debug ->   `Blue,    "DBG"
     in
 
     let write _ =
@@ -487,8 +483,7 @@ struct
       match Message.field request id_field with
       | Some id -> id
       | None ->
-        last_id := !last_id + 1;
-        let id = string_of_int !last_id in
+        let id = string_of_int (Random.bits ()) in
         Message.set_field request id_field id;
         id
     in

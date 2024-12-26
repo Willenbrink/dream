@@ -2089,7 +2089,7 @@ val run :
   ?interface:string ->
   ?port:int ->
   ?socket_path:string ->
-  ?stop:unit -> (* TODO What should this be? And fix the docs. *)
+  ?stop:unit Eio.Promise.t ->
   ?error_handler:error_handler ->
   ?tls:bool ->
   ?certificate_file:string ->
@@ -2097,11 +2097,8 @@ val run :
   ?builtins:bool ->
   ?greeting:bool ->
   ?adjust_terminal:bool ->
-  <clock:_ Eio.Time.clock;
-   mono_clock:_ Eio.Time.Mono.t;
-   net:[> [> `Generic ] Eio.Net.ty ] Eio.Resource.t;
-   secure_random:_ Eio.Flow.source; ..> ->
-    handler -> unit
+  handler ->
+  unit
 (** Runs the Web application represented by the {!handler}, by default at
     {{:http://localhost:8080} http://localhost:8080}.
 
@@ -2117,7 +2114,7 @@ val run :
     - [~stop] is a promise that causes the server to stop accepting new
       requests, and {!Dream.run} to return. Requests that have already entered
       the Web application continue to be processed. The default value is a
-      promise that never resolves.
+      promise that resolves on the SIGTERM signal.
     - [~error_handler] handles all errors, both from the application, and
       low-level errors. See {!section-errors} and example
       {{:https://github.com/aantron/dream/tree/master/example/9-error#folders-and-files}
@@ -2154,13 +2151,14 @@ val serve :
   ?interface:string ->
   ?port:int ->
   ?socket_path:string ->
-  ?stop:unit ->
+  ?stop:unit Eio.Promise.t ->
   ?error_handler:error_handler ->
   ?tls:bool ->
   ?certificate_file:string ->
   ?key_file:string ->
   ?builtins:bool ->
   <clock:_ Eio.Time.clock;
+   domain_mgr : [> Eio.Domain_manager.ty ] Eio.Resource.t;
    mono_clock:_ Eio.Time.Mono.t;
    net:[> [> `Generic ] Eio.Net.ty ] Eio.Resource.t;
    secure_random:_ Eio.Flow.source; ..> ->

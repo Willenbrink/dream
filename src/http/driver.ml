@@ -528,7 +528,6 @@ let serve_with_details
 
   ignore certificate_file;
   ignore key_file;
-  ignore stop;
   ignore tls_library;
 
   (* TODO DOC *)
@@ -595,17 +594,23 @@ let serve_with_details
         address
   in
 
-  (* TODO Value of the backlog argument? *)
   Eio.Switch.run begin fun sw ->
     let socket =
       Eio.Net.listen
-        ~sw env#net listen_address ~reuse_addr:true ~backlog:1000 in
+        ~sw env#net listen_address ~reuse_addr:true ~backlog:128 in
 
     Mirage_crypto_rng_eio.run (module Mirage_crypto_rng.Fortuna) env
     @@ fun () ->
-
+    let additional_domains =
+      Eio.Stdenv.domain_mgr env, Domain.recommended_domain_count() - 1
+    in
     (* TODO The error handler. *)
-    Cohttp_eio.Server.run ~on_error:raise socket cohttp_server
+    Cohttp_eio.Server.run
+      ~additional_domains
+      ~stop
+      ~on_error:raise
+      socket
+      cohttp_server
     |> ignore
   end
 
@@ -788,11 +793,17 @@ let network ~port ~socket_path =
   | None -> `Inet port
   | Some path -> `Unix path
 
+let stop =
+  let promise, resolver = Eio.Promise.create () in
+  Sys.set_signal Sys.sigterm
+    (Signal_handle (fun _ -> Eio.Promise.resolve resolver ()));
+  promise
+
 let serve
     ?(interface = default_interface)
     ?(port = default_port)
     ?socket_path
-    ?(stop = ()) (* TODO *)
+    ?(stop = stop)
     ?(error_handler = Error_handler.default)
     ?(tls = false)
     ?certificate_file
@@ -823,7 +834,7 @@ let run
     ?(interface = default_interface)
     ?(port = default_port)
     ?socket_path
-    ?(stop = ()) (* TODO *)
+    ?(stop = stop) (* TODO *)
     ?(error_handler = Error_handler.default)
     ?(tls = false)
     ?certificate_file
@@ -831,8 +842,9 @@ let run
     ?(builtins = true)
     ?(greeting = true)
     ?adjust_terminal
-    env
     user's_dream_handler =
+
+  Eio_main.run (fun env ->
 
   let () = if Sys.unix then
     Sys.(set_signal sigpipe Signal_ignore)
@@ -880,3 +892,4 @@ let run
         ~builtins
         user's_dream_handler
     (* end; TODO *) ;
+  )
