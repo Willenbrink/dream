@@ -10,7 +10,6 @@
   dream.server
   eio_main
   http
-  mirage-crypto-rng-eio
   ssl)
  (instrumentation
   (backend bisect_ppx)))

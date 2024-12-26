@@ -22,15 +22,15 @@ let%expect_test "middleware runs sequentially onion-style" =
   in
   let inner_middleware handler request =
     print_endline "inner middleware: request";
-    let%lwt response = handler request in
+    let response = handler request in
     print_endline "inner middleware: response";
-    Lwt.return response
+    response
   in
   let outer_middleware handler request =
     print_endline "outer middleware: request";
-    let%lwt response = handler request in
+    let response = handler request in
     print_endline "outer middleware: response";
-    Lwt.return response
+    response
   in
   let server =
     Dream.pipeline [
@@ -39,7 +39,7 @@ let%expect_test "middleware runs sequentially onion-style" =
     ]
     @@ handler
   in
-  ignore (Lwt_main.run (server (Dream.request "")));
+  ignore (server (Dream.request ""));
   [%expect {|
     outer middleware: request
     inner middleware: request

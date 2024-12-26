@@ -134,6 +134,9 @@ let wrap_handler
 
   ignore user's_error_handler;
 
+  (* Don't pollute the Dream logs with the Cohttp server's logs *)
+  Logs.Src.set_level Cohttp_eio.src (Some Warning);
+
   let cohttp_request_handler connection request body =
     Log.set_up_exception_hook ();
 
@@ -599,8 +602,6 @@ let serve_with_details
       Eio.Net.listen
         ~sw env#net listen_address ~reuse_addr:true ~backlog:128 in
 
-    Mirage_crypto_rng_eio.run (module Mirage_crypto_rng.Fortuna) env
-    @@ fun () ->
     let additional_domains =
       Eio.Stdenv.domain_mgr env, Domain.recommended_domain_count() - 1
     in
@@ -842,9 +843,8 @@ let run
     ?(builtins = true)
     ?(greeting = true)
     ?adjust_terminal
+    env
     user's_dream_handler =
-
-  Eio_main.run (fun env ->
 
   let () = if Sys.unix then
     Sys.(set_signal sigpipe Signal_ignore)
@@ -892,4 +892,3 @@ let run
         ~builtins
         user's_dream_handler
     (* end; TODO *) ;
-  )
