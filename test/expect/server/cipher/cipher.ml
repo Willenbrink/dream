@@ -17,9 +17,9 @@ let nonce_1 =
 let nonce_2 =
   "opqrstuvwxyz"
 
-let encrypt secret nonce plaintext associated_data =
+let encrypt secret nonce plaintext adata =
   Dream__cipher.Cipher.AEAD_AES_256_GCM.test_encrypt
-    ~associated_data ~secret ~nonce plaintext
+    ~adata ~secret ~nonce plaintext
   |> Dream.to_base64url
   |> print_endline
 
@@ -70,17 +70,17 @@ let%expect_test _ =
 
 
 
-let decrypt secret associated_data ciphertext =
+let decrypt secret adata ciphertext =
   let result =
     Dream__cipher.Cipher.AEAD_AES_256_GCM.decrypt
-      ~associated_data ~secret ciphertext in
+      ~adata ~secret ciphertext in
   match result with
   | None -> print_endline "None"
   | Some plaintext -> Printf.printf "%S\n" plaintext
 
-let encrypt secret nonce plaintext associated_data =
+let encrypt secret nonce plaintext adata =
   Dream__cipher.Cipher.AEAD_AES_256_GCM.test_encrypt
-    ~associated_data ~secret ~nonce plaintext
+    ~adata ~secret ~nonce plaintext
 
 let%expect_test _ =
   decrypt secret_1 "" (encrypt secret_1 nonce_1 "foo" "");

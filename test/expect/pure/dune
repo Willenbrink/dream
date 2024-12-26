@@ -1,11 +1,3 @@
 (library
  (name test_expect_pure)
- (libraries
-  base
-  dream
-  dream-pure
-  lwt
-  lwt.unix
-  ppx_expect.common
-  ppx_inline_test.config
-  ppx_expect.config_types))
+ (libraries base dream dream-pure))

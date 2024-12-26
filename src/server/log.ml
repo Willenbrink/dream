@@ -46,8 +46,8 @@ type log_level = [
    them in the logs. The scheme works as follows:
 
    - Request ids are strings stored in request-local variables.
-   - The automatically assigned request ids are taken from a simple global
-     sequence.
+   - The automatically assigned request ids are randomly-generated 8-character ID
+     strings.
    - The user can override the automatic request id by assigning a request id
      in a middleware that runs before the logger. User-provided request ids can
      be per-thread, can come from a proxy header, etc.
@@ -99,7 +99,6 @@ let get_request_id ?request () =
 
 
 
-(* TODO Nice logging for multiline strings? *)
 (* The "back end." I inlined several examples from the Logs, Logs_lwt, and Fmt
    docs into each other, and modified the result, to arrive at this function.
    See those docs for the meanings of the various helpers and values.
@@ -172,8 +171,8 @@ let reporter ~now () =
         in
         let ((y, m, d), ((hh, mm, ss), _tz_offset_s)) =
           Ptime.to_date_time time in
-        Printf.sprintf "%02i.%02i.%02i %02i:%02i:%02i.%03.0f"
-          d m (y mod 100)
+        Printf.sprintf "%04i-%02i-%02i %02i:%02i:%02i.%03.0f"
+          y m d
           hh mm ss clamped_fraction
       in
 
@@ -181,11 +180,11 @@ let reporter ~now () =
          clipped to the column width. If the source is the default application
          source, leave the column empty. *)
       let source =
-        let width = 15 in
-        if Logs.Src.name src = Logs.Src.name Logs.default then
+        let name = Logs.Src.name src
+        and width = 15 in
+        if name = Logs.Src.name Logs.default then
           String.make width ' '
         else
-          let name = Logs.Src.name src in
           if String.length name > width then
             String.sub name (String.length name - width) width
           else
@@ -219,18 +218,7 @@ let reporter ~now () =
       let request_id, request_style =
         match request_id with
         | Some "" | None -> "", `White
-        | Some request_id ->
-          (* The last byte of the request id is basically always going to be a
-             digit, growing incrementally, so we can use the parity of its
-             ASCII code to stripe the requests in the log. *)
-          let last_byte = request_id.[String.length request_id - 1] in
-          let color =
-            if (Char.code last_byte) land 1 = 0 then
-              `Cyan
-            else
-              `Magenta
-          in
-          " REQ " ^ request_id, color
+        | Some request_id -> " REQ " ^ request_id, `Cyan
       in
 
       (* The formatting proper. *)
@@ -483,7 +471,7 @@ struct
       match Message.field request id_field with
       | Some id -> id
       | None ->
-        let id = string_of_int (Random.bits ()) in
+        let id = String.sub (Dream__cipher.Random.id ()) 0 8 in
         Message.set_field request id_field id;
         id
     in
@@ -492,7 +480,7 @@ struct
     let fd_string =
       match Message.field request fd_field with
       | None -> ""
-      | Some fd -> " fd " ^ (string_of_int fd)
+      | Some fd -> " fd " ^ (string_of_int fd) ^ " "
     in
 
     (* Identify the request in the log. *)
@@ -501,19 +489,9 @@ struct
       |> String.concat " "
     in
 
-    log.info (fun log ->
-      log ~request "%s %s %s%s %s"
-        (Method.method_to_string (Message.method_ request))
-        (Message.target request)
-        (Helpers.client request)
-        fd_string
-        user_agent);
-
     (* Call the rest of the app. *)
-    (* TODO Simplify the passing of values to the old functions away. *)
     match next_handler request with
-    | response -> response |>
-      (fun response ->
+    | response ->
         (* Log the elapsed time. If the response is a redirection, log the
            target. *)
         let location =
@@ -531,38 +509,38 @@ struct
             ('a, Format.formatter, unit, 'b) format4 -> 'a) -> 'b =
             fun log ->
           let elapsed = now () -. start in
-          log ~request "%i%s in %.0f μs"
+          log
+            ~request
+            "%s %s%s %s %d%s %.0fμs %s"
+            (Helpers.client request)
+            fd_string
+            (Method.method_to_string (Message.method_ request))
+            (Message.target request)
             (Status.status_to_int status)
             location
             (elapsed *. 1e6)
+            user_agent
         in
 
-        begin
-          if Status.is_server_error status then
-            log.error report
-          else
-            if Status.is_client_error status then
-              log.warning report
-            else
-              log.info report
-        end;
+        (if Status.is_server_error status then log.error
+         else if Status.is_client_error status then log.warning
+         else log.info) report;
 
-        response)
+        response
 
     | exception exn -> exn |>
-      (fun exn ->
-        let backtrace = Printexc.get_backtrace () in
-        (* In case of exception, log the exception. We alsp log the backtrace
-           here, even though it is likely to be redundant, because some OCaml
-           libraries install exception printers that will clobber the backtrace
-           right during Printexc.to_string! *)
-        log.warning (fun log ->
-          log ~request "Aborted by: %s" (Printexc.to_string exn));
+      let backtrace = Printexc.get_backtrace () in
+      (* In case of exception, log the exception. We also log the backtrace
+          here, even though it is likely to be redundant, because some OCaml
+          libraries install exception printers that will clobber the backtrace
+          right during Printexc.to_string! *)
+      log.warning (fun log ->
+        log ~request "Aborted by: %s" (Printexc.to_string exn));
 
-        backtrace
-        |> iter_backtrace (fun line -> log.warning (fun log -> log "%s" line));
+      backtrace
+      |> iter_backtrace (fun line -> log.warning (fun log -> log "%s" line));
 
-        raise exn)
+      raise exn
 end
 
 

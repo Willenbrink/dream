@@ -134,6 +134,9 @@ let wrap_handler
 
   ignore user's_error_handler;
 
+  (* Don't pollute the Dream logs with the Cohttp server's logs *)
+  Logs.Src.set_level Cohttp_eio.src (Some Warning);
+
   let cohttp_request_handler connection request body =
     Log.set_up_exception_hook ();
 
@@ -842,9 +845,8 @@ let run
     ?(builtins = true)
     ?(greeting = true)
     ?adjust_terminal
+    env
     user's_dream_handler =
-
-  Eio_main.run (fun env ->
 
   let () = if Sys.unix then
     Sys.(set_signal sigpipe Signal_ignore)
@@ -892,4 +894,3 @@ let run
         ~builtins
         user's_dream_handler
     (* end; TODO *) ;
-  )

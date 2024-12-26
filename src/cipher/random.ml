@@ -6,3 +6,6 @@
 
 
 let random n = Mirage_crypto_rng.generate n
+
+(* Helper to generate a random string that can be used as a unique identifier. *)
+let id () = Digest.to_hex (random 16)
