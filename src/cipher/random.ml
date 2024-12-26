@@ -5,8 +5,4 @@
 
 
 
-let random_buffer n =
-  Mirage_crypto_rng.generate n
-
-let random n =
-  random_buffer n
+let random n = Mirage_crypto_rng.generate n

@@ -13,6 +13,7 @@
 
 
 
+module GCM = Mirage_crypto.AES.GCM
 module Message = Dream_pure.Message
 
 
@@ -22,26 +23,21 @@ sig
   val prefix : char
   val name : string
 
-  val encrypt :
-    ?associated_data:string -> secret:string -> string -> string
-
-  val decrypt :
-    ?associated_data:string -> secret:string -> string -> string option
-
-  val test_encrypt :
-    ?associated_data:string -> secret:string -> nonce:string -> string -> string
+  val encrypt : ?adata:string -> secret:string -> string -> string
+  val decrypt : ?adata:string -> secret:string -> string -> string option
+  val test_encrypt : ?adata:string -> secret:string -> nonce:string -> string -> string
 end
 
-let encrypt (module Cipher : Cipher) ?associated_data secret plaintext =
-  Cipher.encrypt ?associated_data ~secret plaintext
+let encrypt (module Cipher : Cipher) ?adata secret plaintext =
+  Cipher.encrypt ?adata ~secret plaintext
 
 let rec decrypt
-    ((module Cipher : Cipher) as cipher) ?associated_data secrets ciphertext =
+    ((module Cipher : Cipher) as cipher) ?adata secrets ciphertext =
 
   match secrets with
   | [] -> None
   | secret::secrets ->
-    match Cipher.decrypt ?associated_data ~secret ciphertext with
+    match Cipher.decrypt ?adata ~secret ciphertext with
     | Some _ as plaintext -> plaintext
     | None -> decrypt cipher secrets ciphertext
 
@@ -72,26 +68,22 @@ struct
     secret
     |> Digestif.SHA256.digest_string
     |> Digestif.SHA256.to_raw_string
-    |> Mirage_crypto.AES.GCM.of_secret
+    |> GCM.of_secret
 
   (* TODO Memoize keys or otherwise avoid key derivation on every call. *)
-  let encrypt_with_nonce secret nonce plaintext associated_data =
+  let encrypt_with_nonce secret nonce plaintext adata =
     let key = derive_key secret in
-    let adata = associated_data in
-    let ciphertext =
-      Mirage_crypto.AES.GCM.authenticate_encrypt ~key ~nonce ?adata plaintext in
-
+    let ciphertext = GCM.authenticate_encrypt ~key ~nonce ?adata plaintext in
     "\x00" ^ nonce ^ ciphertext
 
-  let encrypt ?associated_data ~secret plaintext =
+  let encrypt ?adata ~secret plaintext =
     encrypt_with_nonce
-      secret (Random.random_buffer 12) plaintext associated_data
+      secret (Random.random 12) plaintext adata
 
-  let test_encrypt ?associated_data ~secret ~nonce plaintext =
-    encrypt_with_nonce
-      secret nonce plaintext associated_data
+  let test_encrypt ?adata ~secret ~nonce plaintext =
+    encrypt_with_nonce secret nonce plaintext adata
 
-  let decrypt ?associated_data ~secret ciphertext =
+  let decrypt ?adata ~secret ciphertext =
     let key = derive_key secret in
     if String.length ciphertext < 14 then
       None
@@ -99,15 +91,11 @@ struct
       if ciphertext.[0] != prefix then
         None
       else
-        let adata = associated_data in
-        let plaintext =
-          Mirage_crypto.AES.GCM.authenticate_decrypt
-            ~key
-            ~nonce:(String.sub ciphertext 1 12)
-            ?adata
-            (String.sub ciphertext 13 (String.length ciphertext - 13))
-        in
-        plaintext
+        GCM.authenticate_decrypt
+          ~key
+          ~nonce:(StringLabels.sub ~pos:1 ~len:12 ciphertext)
+          ?adata
+          (StringLabels.sub ciphertext ~pos:13 ~len:(String.length ciphertext - 13))
 end
 
 let secrets_field =
@@ -139,16 +127,16 @@ let decryption_secrets request =
   | Some secrets -> secrets
   | None -> Lazy.force fallback_secrets
 
-let encrypt ?associated_data request plaintext =
+let encrypt ?associated_data:adata request plaintext =
   encrypt
     (module AEAD_AES_256_GCM)
-    ?associated_data
+    ?adata
     (encryption_secret request)
     plaintext
 
-let decrypt ?associated_data request ciphertext =
+let decrypt ?associated_data:adata request ciphertext =
   decrypt
     (module AEAD_AES_256_GCM)
-    ?associated_data
+    ?adata
     (decryption_secrets request)
     ciphertext

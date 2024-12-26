@@ -146,12 +146,7 @@ let wrap_handler
 
   ignore user's_error_handler;
 
-  let httpaf_request_handler
-      (connection : Cohttp_eio.Server.conn)
-      (request : Cohttp_http.Request.t)
-      (body : Cohttp_eio.Server.body)
-      : (Cohttp_http.Response.t * Cohttp_eio.Server.body) =
-
+  let cohttp_request_handler connection request body =
     Log.set_up_exception_hook ();
 
     (* Convert the Cohttp request to a Dream request. *)
@@ -284,7 +279,7 @@ let wrap_handler
   in
   *)
 
-  httpaf_request_handler
+  cohttp_request_handler
 
 
 
