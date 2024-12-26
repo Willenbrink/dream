@@ -114,18 +114,6 @@ let sha1 s =
 let websocket_log =
   Log.sub_log "dream.websocket"
 
-let set_fd =
-  match Sys.os_type with
-  | "Unix" | "Cygwin" ->
-    fun request unix_socket ->
-      unix_socket
-      |> Lwt_unix.unix_file_descr
-      |> Obj.magic
-      |> Message.set_field request Log.fd_field
-  | _ ->
-    fun _request _unix_socket ->
-      ()
-
 
 
 (* Wraps the user's Dream handler in the kind of handler expected by http/af.
@@ -842,7 +830,7 @@ let run
     ?key_file
     ?(builtins = true)
     ?(greeting = true)
-    ?(adjust_terminal = true)
+    ?adjust_terminal
     env
     user's_dream_handler =
 
@@ -878,7 +866,6 @@ let run
     log "Type Ctrl+C to stop"
   end;
 
-  try
     (* Lwt_main.run begin TODO *)
       serve_with_maybe_https
         "run"
@@ -893,8 +880,3 @@ let run
         ~builtins
         user's_dream_handler
     (* end; TODO *) ;
-    restore_terminal ()
-
-  with exn ->
-    restore_terminal ();
-    raise exn
