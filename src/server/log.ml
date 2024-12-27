@@ -526,20 +526,18 @@ let fd_field : int Message.field =
 
         response
 
-    | exception exn -> exn |>
+    | exception exn ->
       let backtrace = Printexc.get_backtrace () in
       (* In case of exception, log the exception. We also log the backtrace
           here, even though it is likely to be redundant, because some OCaml
           libraries install exception printers that will clobber the backtrace
           right during Printexc.to_string! *)
-      log.warning (fun log ->
-        log ~request "Aborted by: %s" (Printexc.to_string exn));
+      log.warning (fun log -> log ~request "Aborted by: %a" Eio.Exn.pp exn);
 
       backtrace
       |> iter_backtrace (fun line -> log.warning (fun log -> log "%s" line));
 
       raise exn
-
 
 
 (* TODO DOC Include logging itself in the timing. Or? Isn't that pointless?
