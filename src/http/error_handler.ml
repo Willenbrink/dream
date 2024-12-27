@@ -208,9 +208,7 @@ let double_faults f default =
   try f ()
   with exn ->
     let backtrace = Printexc.get_backtrace () in
-
-    log.error (fun log ->
-      log "Error handler raised: %s" (Printexc.to_string exn));
+    log.error (fun log -> log "Error handler raised: %a" Eio.Exn.pp exn);
 
     backtrace
     |> Log.iter_backtrace (fun line ->
@@ -227,15 +225,12 @@ let double_faults f default =
 let respond_with_option f =
   double_faults
     (fun () ->
-      (* TODO Fix indentation. *)
       match f () with
-        | Some response -> response
-        | None ->
-          Message.response
-            ~status:`Internal_Server_Error Stream.empty Stream.null)
+      | Some response -> response
+      | None ->
+        Message.response ~status:`Internal_Server_Error Stream.empty Stream.null)
     (fun () ->
       Message.response ~status:`Internal_Server_Error Stream.empty Stream.null)
-
 
 
 (* In the functions below, the first row or set of arguments comes from the
