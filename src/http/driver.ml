@@ -617,19 +617,9 @@ let serve_with_details
     |> ignore
   end
 
-  (* TODO Use stop. *)
-
   (* Bring up the HTTP server. Wait for the server to actually get started.
      Then, wait for the ~stop promise. If the ~stop promise ever resolves, stop
      the server. *)
-  (* let%lwt server =
-    Lwt_io.establish_server_with_client_socket
-      listen_address
-      httpaf_connection_handler in
-
-  let%lwt () = stop in
-  Lwt_io.shutdown_server server *)
-
 
 
 let is_localhost interface =
@@ -779,8 +769,8 @@ let serve_with_maybe_https
   with exn ->
     let backtrace = Printexc.get_backtrace () in
     log.error (fun log ->
-      log "Dream.%s: exception %s"
-        caller_function_for_error_messages (Printexc.to_string exn));
+      log "Dream.%s: exception %a"
+        caller_function_for_error_messages Eio.Exn.pp exn);
     backtrace |> Log.iter_backtrace (fun line ->
       log.error (fun log -> log "%s" line));
     raise exn
@@ -789,13 +779,13 @@ let serve_with_maybe_https
 
 let default_interface = "localhost"
 let default_port = 8080
-(* let never = fst (Lwt.wait ()) TODO *)
 
 let network ~port ~socket_path =
   match socket_path with
   | None -> `Inet port
   | Some path -> `Unix path
 
+(* By default, stop the server on SIGTERM *)
 let stop =
   let promise, resolver = Eio.Promise.create () in
   Sys.set_signal Sys.sigterm
@@ -880,7 +870,6 @@ let run
     log "Type Ctrl+C to stop"
   end;
 
-    (* Lwt_main.run begin TODO *)
       serve_with_maybe_https
         "run"
         env
@@ -893,4 +882,3 @@ let run
         ?certificate_string:None ?key_string:None
         ~builtins
         user's_dream_handler
-    (* end; TODO *) ;
