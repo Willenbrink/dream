@@ -423,9 +423,7 @@ val respond :
   ?code:int ->
   ?headers:(string * string) list ->
     string -> response
-(** Same as {!Dream.val-response}, but the new {!type-response} is wrapped in a
-    {!type-promise}. *)
-(* TODO Remove, or remove response. *)
+(** Same as {!Dream.val-response}. *)
 
 val html :
   ?status:[< status ] ->
@@ -706,10 +704,9 @@ val read : stream -> string option
    WebSocket. *)
 
 val write : stream -> string -> unit
-(** Streams out the string. The promise is fulfilled when the response can
-    accept more writes. *)
+(** Blocks the fiber until the stream can accept a write, and then streams out
+    the string. *)
 (* TODO Document clearly which of the writing functions can raise exceptions. *)
-(* TODO Fix docs -- no more promise. *)
 
 val flush : stream -> unit
 (** Flushes the stream's write buffer. Data is sent to the client. *)
@@ -858,8 +855,8 @@ val send :
   ?text_or_binary:[< text_or_binary ] ->
   ?end_of_message:[< end_of_message ] ->
     websocket -> string -> unit
-(** Sends a single WebSocket message. The WebSocket is ready for another message
-    when the promise resolves.
+(** Blocks the fiber until the WebSocket is ready for a message and then sends
+    this message.
 
     With [~text_or_binary:`Text], the default, the message is interpreted as a
     UTF-8 string. The client will receive it transcoded to JavaScript's UTF-16
@@ -872,7 +869,6 @@ val send :
 
     [~end_of_message] is ignored for now, as the WebSocket library underlying
     Dream does not support sending message fragments yet. *)
-(* TODO Docs: there is no more promise here. *)
 
 val receive : websocket -> string option
 (** Receives a message. If the WebSocket is closed before a complete message
@@ -1365,10 +1361,13 @@ val router : route list -> handler
 
     {[
       let () =
-        Dream.run
+        Eio_main.run (fun env ->
+        let www_static = Eio.Path.(Eio.Stdenv.cwd env / "www" / "static") in
+
+        Dream.run env
         @@ Dream.router [
-          Dream.get "/static/**" @@ Dream.static "www/static";
-        ]
+          Dream.get "/static/**" (Dream.static www_static);
+        ])
     ]}
 
     [**] causes the request's path to be trimmed by the route prefix, and the
@@ -1472,17 +1471,19 @@ val static : _ Eio.Path.t -> handler
 
     {[
       let () =
-        Dream.run
-        @@ Dream.router {
-          Dream.get "/static/**" @@ Dream.static "www/static";
-        }
+        Eio_main.run (fun env ->
+        let www_static = Eio.Path.(Eio.Stdenv.cwd env / "www" / "static") in
+
+        Dream.run env
+        @@ Dream.router [
+          Dream.get "/static/**" (Dream.static www_static);
+        ])
     ]}
 
-    [Dream.static local_directory] validates the path substituted for [**] by
-    checking that it is (1) relative, (2) does not contain parent directory
-    references ([..]), and (3) does not contain separators ([/]) within
-    components. If these checks fail, {!Dream.static} responds with [404 Not
-    Found].
+    [Dream.static local_directory] allows access to files within the
+    [local_directory] but not outside it (including by following symbolic links).
+    Attempting to access any files outside the given directory will respond with
+    a [404 Not Found].
 
     If the checks succeed, {!Dream.static} calls [~loader local_directory path
     request], where
@@ -1495,16 +1496,18 @@ val static : _ Eio.Path.t -> handler
     {{:https://github.com/aantron/dream/tree/master/example/w-one-binary#folders-and-files}
     [w-one-binary]} for a loader that serves files from memory instead. *)
 
-val from_filesystem : _ Eio.Path.t -> string -> handler
-(** [Dream.from_filesystem local_directory path request] responds with a file
-    from the file system found at [local_directory ^ "/" ^ path].
-    If such a file does not exist, it responds with [404 Not Found].
+val from_filesystem : _ Eio.Path.t -> handler
+(** [Dream.from_filesystem path request] responds with a file
+    from the file system found at [path]. If such a file does not exist, it
+    responds with [404 Not Found].
 
     To serve single files like [sitemap.xml] from the file system, use routes
     like
 
     {[
-      Dream.get "/sitemap.xml" (Dream.from_filesystem "assets" "sitemap.xml")
+      Dream.get
+        "/sitemap.xml"
+        (Dream.from_filesystem Eio.Path.(cwd / "assets" / "sitemap.xml"));
     ]}
 
     {!Dream.from_filesystem} calls {!Dream.mime_lookup} to guess a
@@ -1556,9 +1559,8 @@ val session_field : request -> string -> string option
 (** Value from the request's session. *)
 
 val set_session_field : request -> string -> string -> unit
-(** Mutates a value in the request's session. The back end may commit the value
-    to storage immediately, so this function returns a promise. *)
-(* TODO Remove mention of the promise. *)
+(** Mutates a value in the request's session. The back end may do I/O and block
+    the calling fiber until it finishes. *)
 
 val drop_session_field : request -> string -> unit
 (** Drops a field from the request's session. *)

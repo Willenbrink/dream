@@ -15,84 +15,46 @@ module Stream = Dream_pure.Stream
 
 (* TODO Not at all efficient; can at least stream the file, maybe even cache. *)
 (* TODO Also mind newlines on Windows. *)
-(* TODO NOTE Using Lwt_io because it has a nice "read the whole thing"
-   function. *)
 
-let mime_lookup filename =
-  let content_type =
-    match Magic_mime.lookup filename with
-    | "text/html" -> Formats.text_html
-    | content_type -> content_type
-  in
-  ["Content-Type", content_type]
+let mime_lookup' filename =
+  match Magic_mime.lookup filename with
+  | "text/html" -> Formats.text_html
+  | content_type -> content_type
 
-let from_filesystem local_root path _ =
-  let (/) = Eio.Path.(/) in
-  let file = local_root / path in
-  (* TODO Indentation below. *)
+let mime_lookup filename = ["Content-Type", mime_lookup' filename]
+
+(* TODO: this reads the entire file into memory as a string.
+   [Eio.Path.with_open_in] gives us a read-only flow and
+   [Cohttp_eio.Server.respond ~body] argument is a flow. Would be ideal to stream
+   the response by connecting the source and sink directly. *)
+let from_filesystem file _ =
   try
     let content = Eio.Path.load file in
-        Message.response
-          ~headers:(mime_lookup path) (Stream.string content) Stream.null
-    with _exn ->
-      Message.response ~status:`Not_Found Stream.empty Stream.null
+    Message.response
+      ~headers:(mime_lookup (snd file)) (Stream.string content) Stream.null
+  with _exn ->
+    Message.response ~status:`Not_Found Stream.empty Stream.null
 
 (* TODO Add ETag handling. *)
 (* TODO Add Content-Length handling? *)
 (* TODO Support HEAD requests? *)
 
-(* TODO On Windows, should we also check for \ and drive letters? *)
-(* TODO Not an efficient implementation at the moment. *)
-let validate_path request =
-  let path = Router.path request in
-
-  let has_slash component = String.contains component '/' in
-  let has_backslash component = String.contains component '\\' in
-  let has_slash = List.exists has_slash path in
-  let has_backslash = List.exists has_backslash path in
-  let has_dot = List.exists ((=) Filename.current_dir_name) path in
-  let has_dotdot = List.exists ((=) Filename.parent_dir_name) path in
-  let has_empty = List.exists ((=) "") path in
-  let is_empty = path = [] in
-
-  if has_slash ||
-     has_backslash ||
-     has_dot ||
-     has_dotdot ||
-     has_empty ||
-     is_empty then
-    None
-
-  else
-    let path = String.concat Filename.dir_sep path in
-    if Filename.is_relative path then
-      Some path
-    else
-      None
-
 let static local_root = fun request ->
   if not @@ Method.methods_equal (Message.method_ request) `GET then
-    Message.response ~status:`Not_Found Stream.empty Stream.null
+    Message.response ~status:`Method_Not_Allowed Stream.empty Stream.null
 
   else
-    match validate_path request with
-    | None ->
-      Message.response ~status:`Not_Found Stream.empty Stream.null
-
-    | Some path ->
-      (* TODO Using from_filesystem because of row type unification problems in
-         the phantom type parameters of Eio path capabilities -- a completely
-         artificial regression. *)
-      let response = from_filesystem local_root path request in
-      if not (Message.has_header response "Content-Type") then begin
-        match Message.status response with
-        | `OK
-        | `Non_Authoritative_Information
-        | `No_Content
-        | `Reset_Content
-        | `Partial_Content ->
-          Message.add_header response "Content-Type" (Magic_mime.lookup path)
-        | _ ->
-          ()
-      end;
-      response
+    let path = List.fold_left Eio.Path.( / ) local_root (Router.path request) in
+    let response = from_filesystem path request in
+    if not (Message.has_header response "Content-Type") then begin
+      match Message.status response with
+      | `OK
+      | `Non_Authoritative_Information
+      | `No_Content
+      | `Reset_Content
+      | `Partial_Content ->
+        Message.add_header response "Content-Type" (mime_lookup' (snd path))
+      | _ ->
+        ()
+    end;
+    response
