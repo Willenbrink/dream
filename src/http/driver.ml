@@ -602,12 +602,8 @@ let serve_with_details
       Eio.Net.listen
         ~sw env#net listen_address ~reuse_addr:true ~backlog:128 in
 
-    let additional_domains =
-      Eio.Stdenv.domain_mgr env, Domain.recommended_domain_count() - 1
-    in
     (* TODO The error handler. *)
     Cohttp_eio.Server.run
-      ~additional_domains
       ~stop
       ~on_error:raise
       socket

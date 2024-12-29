@@ -2101,7 +2101,6 @@ val run :
   ?adjust_terminal:bool ->
   <
     clock:_ Eio.Time.clock;
-    domain_mgr : [> Eio.Domain_manager.ty ] Eio.Resource.t;
     mono_clock:_ Eio.Time.Mono.t;
     net:[> [> `Generic ] Eio.Net.ty ] Eio.Resource.t;
     secure_random:_ Eio.Flow.source;
@@ -2169,7 +2168,6 @@ val serve :
   ?builtins:bool ->
   <
     clock:_ Eio.Time.clock;
-    domain_mgr : [> Eio.Domain_manager.ty ] Eio.Resource.t;
     mono_clock:_ Eio.Time.Mono.t;
     net:[> [> `Generic ] Eio.Net.ty ] Eio.Resource.t;
     secure_random:_ Eio.Flow.source;
