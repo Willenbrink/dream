@@ -604,12 +604,8 @@ let serve_with_details
 
     Mirage_crypto_rng_eio.run (module Mirage_crypto_rng.Fortuna) env
     @@ fun () ->
-    let additional_domains =
-      Eio.Stdenv.domain_mgr env, Domain.recommended_domain_count() - 1
-    in
     (* TODO The error handler. *)
     Cohttp_eio.Server.run
-      ~additional_domains
       ~stop
       ~on_error:raise
       socket
