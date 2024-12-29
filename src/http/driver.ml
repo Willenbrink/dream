@@ -600,7 +600,7 @@ let serve_with_details
   Eio.Switch.run begin fun sw ->
     let socket =
       Eio.Net.listen
-        ~sw env#net listen_address ~reuse_addr:true ~backlog:128 in
+        ~sw env#net listen_address ~reuse_addr:true ~reuse_port:true ~backlog:128 in
 
     (* TODO The error handler. *)
     Cohttp_eio.Server.run
