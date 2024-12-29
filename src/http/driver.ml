@@ -855,15 +855,17 @@ let run
         "http"
     in
 
-    begin match interface, socket_path with
-    | _, Some path ->
-      log "Running on %s" path
-    | ("localhost" | "127.0.0.1"), None ->
-      log "Running at %s://localhost:%i" scheme port
-    | _ ->
-      log "Running on %s:%i (%s://localhost:%i)" interface port scheme port
-    end;
-    log "Type Ctrl+C to stop"
+    if (Domain.self () :> int) = 0 then begin
+      begin match interface, socket_path with
+      | _, Some path ->
+        log "Running on %s" path
+      | ("localhost" | "127.0.0.1"), None ->
+        log "Running at %s://localhost:%i" scheme port
+      | _ ->
+        log "Running on %s:%i (%s://localhost:%i)" interface port scheme port
+      end;
+      log "Type Ctrl+C to stop"
+    end
   end;
 
       serve_with_maybe_https
