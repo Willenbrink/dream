@@ -511,14 +511,14 @@ struct
           let elapsed = now () -. start in
           log
             ~request
-            "%s %s%s %s %d%s %.0fμs %s"
+            "%d %.0fμs %s%s %s %s%s %s"
+            (Status.status_to_int status)
+            (elapsed *. 1e6)
             (Helpers.client request)
             fd_string
             (Method.method_to_string (Message.method_ request))
             (Message.target request)
-            (Status.status_to_int status)
             location
-            (elapsed *. 1e6)
             user_agent
         in
 
