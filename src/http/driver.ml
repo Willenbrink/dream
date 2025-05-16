@@ -602,8 +602,6 @@ let serve_with_details
       Eio.Net.listen
         ~sw env#net listen_address ~reuse_addr:true ~reuse_port:true ~backlog:128 in
 
-    Mirage_crypto_rng_eio.run (module Mirage_crypto_rng.Fortuna) env
-    @@ fun () ->
     (* TODO The error handler. *)
     Cohttp_eio.Server.run
       ~stop
@@ -638,6 +636,8 @@ let serve_with_maybe_https
   ignore certificate_string;
   ignore key_file;
   ignore key_string;
+
+  Mirage_crypto_rng_unix.use_default ();
 
   try
     (* This check will at least catch secrets like "foo" when used on a public

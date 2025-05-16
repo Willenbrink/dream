@@ -4,6 +4,7 @@
    Copyright 2021 Anton Bachin *)
 
 
+let () = Mirage_crypto_rng_unix.use_default ()
 
 let secret_1 =
   "abc"
