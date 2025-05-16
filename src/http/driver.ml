@@ -637,6 +637,8 @@ let serve_with_maybe_https
   ignore key_file;
   ignore key_string;
 
+  Mirage_crypto_rng_unix.use_default ();
+
   try
     (* This check will at least catch secrets like "foo" when used on a public
        interface. *)

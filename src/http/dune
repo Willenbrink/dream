@@ -10,6 +10,8 @@
   dream.server
   eio_main
   http
+  mirage-crypto-rng
+  mirage-crypto-rng.unix
   ssl)
  (instrumentation
   (backend bisect_ppx)))

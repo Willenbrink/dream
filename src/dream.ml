@@ -388,10 +388,7 @@ let test ?(prefix = "") handler request =
     @@ handler
   in
 
-  (* Lwt_main.run (app request) TODO *)
-  ignore request;
-  ignore app;
-  assert false
+  Eio_main.run (fun _ -> app request)
 
 let sort_headers = Message.sort_headers
 let echo = Echo.echo
