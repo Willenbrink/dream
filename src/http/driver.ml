@@ -602,6 +602,7 @@ let serve_with_details
       Eio.Net.listen
         ~sw env#net listen_address ~reuse_addr:true ~reuse_port:true ~backlog:128 in
 
+    Mirage_crypto_rng_unix.use_default ();
     (* TODO The error handler. *)
     Cohttp_eio.Server.run
       ~stop

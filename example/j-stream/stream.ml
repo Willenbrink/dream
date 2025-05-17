@@ -1,5 +1,6 @@
 let () =
-  Dream.run
+  Eio_main.run begin fun env ->
+  Dream.run env
   @@ Dream.logger
   @@ Dream.router [
 
@@ -10,14 +11,15 @@ let () =
         ~headers:["Content-Type", "application/octet-stream"]
         (fun response_stream ->
           let rec loop () =
-            match%lwt Dream.read request_stream with
+            match Dream.read request_stream with
             | None ->
               Dream.close response_stream
             | Some chunk ->
-              let%lwt () = Dream.write response_stream chunk in
-              let%lwt () = Dream.flush response_stream in
+              let () = Dream.write response_stream chunk in
+              let () = Dream.flush response_stream in
               loop ()
           in
           loop ()));
 
   ]
+        end
