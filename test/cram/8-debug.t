@@ -127,7 +127,7 @@
       </p>
       <h3>Debug Dump</h3>
       <pre><code>Failure(&quot;The Web app failed!&quot;)
-  Raised at Dream__server__Log.Make.logger in file &quot;src/server/log.ml&quot;, line 542, characters 6-15
+  Raised at Dream__server__Log.logger in file &quot;src/server/log.ml&quot;, line 540, characters 6-15
   Called from Dream__server__Catch.catch in file &quot;src/server/catch.ml&quot;, line 45, characters 8-28
   
   From: Application
@@ -201,7 +201,7 @@
       </p>
       <h3>Debug Dump</h3>
       <pre><code>Failure(&quot;The Web app failed!&quot;)
-  Raised at Dream__server__Log.Make.logger in file &quot;src/server/log.ml&quot;, line 542, characters 6-15
+  Raised at Dream__server__Log.logger in file &quot;src/server/log.ml&quot;, line 540, characters 6-15
   Called from Dream__server__Catch.catch in file &quot;src/server/catch.ml&quot;, line 45, characters 8-28
   
   From: Application
@@ -275,7 +275,7 @@
       </p>
       <h3>Debug Dump</h3>
       <pre><code>Failure(&quot;The Web app failed!&quot;)
-  Raised at Dream__server__Log.Make.logger in file &quot;src/server/log.ml&quot;, line 542, characters 6-15
+  Raised at Dream__server__Log.logger in file &quot;src/server/log.ml&quot;, line 540, characters 6-15
   Called from Dream__server__Catch.catch in file &quot;src/server/catch.ml&quot;, line 45, characters 8-28
   
   From: Application
