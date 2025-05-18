@@ -24,7 +24,7 @@ let report files =
   </html>
 
 let () =
-Eio_main.run begin fun env ->
+  Eio_main.run @@ fun env ->
   Dream.run env
   @@ Dream.logger
   @@ Dream.memory_sessions
@@ -39,4 +39,3 @@ Eio_main.run begin fun env ->
       | _ -> Dream.empty `Bad_Request);
 
   ]
-    end

@@ -1,9 +1,9 @@
 (executable
  (name sql)
- (libraries caqti-driver-sqlite3 dream)
- (preprocess (pps lwt_ppx)))
+ (libraries caqti-driver-sqlite3 caqti-eio dream))
 
 (rule
  (targets sql.ml)
  (deps sql.eml.ml)
- (action (run dream_eml %{deps} --workspace %{workspace_root})))
+ (action
+  (run dream_eml %{deps} --workspace %{workspace_root})))
