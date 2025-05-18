@@ -69,7 +69,6 @@
   dream.client: ::1:<omitted>
   dream.tls: false
   dream.request_id: <omitted>
-  dream.fd: 6
   dream.params: </code></pre>
     </body>
   </html>
@@ -128,8 +127,8 @@
       </p>
       <h3>Debug Dump</h3>
       <pre><code>Failure(&quot;The Web app failed!&quot;)
-  Raised at Stdlib__Map.Make.find in file &quot;map.ml&quot;, line 141, characters 10-25
-  Called from Logs.Tag.find in file &quot;src/logs.ml&quot;, line 153, characters 14-32
+  Raised at Dream__server__Log.Make.logger in file &quot;src/server/log.ml&quot;, line 542, characters 6-15
+  Called from Dream__server__Catch.catch in file &quot;src/server/catch.ml&quot;, line 45, characters 8-28
   
   From: Application
   Blame: Server
@@ -145,7 +144,6 @@
   dream.client: ::1:<omitted>
   dream.tls: false
   dream.request_id: <omitted>
-  dream.fd: 6
   dream.params: </code></pre>
     </body>
   </html>
@@ -203,8 +201,8 @@
       </p>
       <h3>Debug Dump</h3>
       <pre><code>Failure(&quot;The Web app failed!&quot;)
-  Raised at Stdlib__Map.Make.find in file &quot;map.ml&quot;, line 141, characters 10-25
-  Called from Logs.Tag.find in file &quot;src/logs.ml&quot;, line 153, characters 14-32
+  Raised at Dream__server__Log.Make.logger in file &quot;src/server/log.ml&quot;, line 542, characters 6-15
+  Called from Dream__server__Catch.catch in file &quot;src/server/catch.ml&quot;, line 45, characters 8-28
   
   From: Application
   Blame: Server
@@ -220,7 +218,6 @@
   dream.client: ::1:<omitted>
   dream.tls: false
   dream.request_id: <omitted>
-  dream.fd: 6
   dream.params: </code></pre>
     </body>
   </html>
@@ -278,8 +275,8 @@
       </p>
       <h3>Debug Dump</h3>
       <pre><code>Failure(&quot;The Web app failed!&quot;)
-  Raised at Stdlib__Map.Make.find in file &quot;map.ml&quot;, line 141, characters 10-25
-  Called from Logs.Tag.find in file &quot;src/logs.ml&quot;, line 153, characters 14-32
+  Raised at Dream__server__Log.Make.logger in file &quot;src/server/log.ml&quot;, line 542, characters 6-15
+  Called from Dream__server__Catch.catch in file &quot;src/server/catch.ml&quot;, line 45, characters 8-28
   
   From: Application
   Blame: Server
@@ -295,7 +292,6 @@
   dream.client: ::1:<omitted>
   dream.tls: false
   dream.request_id: <omitted>
-  dream.fd: 6
   dream.params: </code></pre>
     </body>
   </html>
