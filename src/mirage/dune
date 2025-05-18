@@ -9,7 +9,6 @@
   dream.server
   dream.certificate
   dream-pure
-  lwt
   rresult
   tcpip
   h1
@@ -17,7 +16,5 @@
   paf
   paf.alpn
   paf.mirage)
- (preprocess
-  (pps lwt_ppx))
  (instrumentation
   (backend bisect_ppx)))

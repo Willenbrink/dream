@@ -57,10 +57,9 @@ let wrap_handler_httpaf _user's_error_handler user's_dream_handler =
        customizable here. The handler itself is customizable (to catch all)
        exceptions, and the error callback that gets leaked exceptions is also
        customizable. *)
-    Lwt.async begin fun () ->
-      Lwt.catch begin fun () ->
+      try
         (* Do the big call. *)
-        let%lwt response = user's_dream_handler request in
+        let response = user's_dream_handler request in
 
         (* Extract the Dream response's headers. *)
 
@@ -92,19 +91,15 @@ let wrap_handler_httpaf _user's_error_handler user's_dream_handler =
           let body =
             H1.Reqd.respond_with_streaming reqd httpaf_response in
 
-          Adapt.forward_body response body;
-
-          Lwt.return_unit
+          Adapt.forward_body response body
         in
 
         forward_response response
-      end
-      @@ fun exn ->
+      with
+      | exn ->
         (* TODO LATER There was something in the fork changelogs about not
            requiring report_exn. Is it relevant to this? *)
-        H1.Reqd.report_exn reqd exn;
-        Lwt.return_unit
-    end
+        H1.Reqd.report_exn reqd exn
   in
 
   httpaf_request_handler
@@ -196,7 +191,6 @@ module Make (Stack : Tcpip.Stack.V4V6) = struct
   type 'a message = 'a Message.message
   type client = Message.client
   type server = Message.server
-  type 'a promise = 'a Message.promise
 
 
   (* Requests *)
@@ -490,16 +484,14 @@ module Make (Stack : Tcpip.Stack.V4V6) = struct
 
     if not @@ Method.methods_equal (Message.method_ request) `GET then
       Message.response ~status:`Not_Found Stream.empty Stream.null
-      |> Lwt.return
 
     else
       match validate_path request with
       | None ->
         Message.response ~status:`Not_Found Stream.empty Stream.null
-        |> Lwt.return
 
       | Some path ->
-        let%lwt response = loader local_root path request in
+        let response = loader local_root path request in
         if not (Message.has_header response "Content-Type") then begin
           match Message.status response with
           | `OK
@@ -511,7 +503,7 @@ module Make (Stack : Tcpip.Stack.V4V6) = struct
           | _ ->
             ()
         end;
-        Lwt.return response
+        response
 
 end
 
