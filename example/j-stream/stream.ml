@@ -1,5 +1,5 @@
 let () =
-  Eio_main.run begin fun env ->
+  Eio_main.run @@ fun env ->
   Dream.run env
   @@ Dream.logger
   @@ Dream.router [
@@ -22,4 +22,3 @@ let () =
           loop ()));
 
   ]
-        end

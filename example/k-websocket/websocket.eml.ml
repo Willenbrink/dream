@@ -17,8 +17,8 @@ let home =
   </body>
   </html>
 
-let () =
-  Dream.run
+let () = Eio_main.run @@ fun env ->
+  Dream.run env
   @@ Dream.logger
   @@ Dream.router [
 
@@ -29,7 +29,7 @@ let () =
     Dream.get "/websocket"
       (fun _ ->
         Dream.websocket (fun websocket ->
-          match%lwt Dream.receive websocket with
+          match Dream.receive websocket with
           | Some "Hello?" ->
             Dream.send websocket "Good-bye!"
           | _ ->

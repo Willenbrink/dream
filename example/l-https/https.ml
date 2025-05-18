@@ -1,6 +1,5 @@
 let () =
-Eio_main.run begin fun env ->
+  Eio_main.run @@ fun env ->
   Dream.run env ~tls:true
   @@ Dream.logger
   @@ fun _ -> Dream.html "Good morning, world!"
-end
