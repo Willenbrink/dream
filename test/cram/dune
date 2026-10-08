@@ -30,8 +30,7 @@
   %{bin:template-files}
   %{bin:template-logic}
   %{bin:template_stream}
-  %{bin:tyxml}
-  ../../example/h-sql/db.sqlite)
+  %{bin:tyxml})
   (setup_scripts common.sh))
 
 (env
