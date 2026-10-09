@@ -9,14 +9,14 @@
   Blame: Client
   Severity: Warning
   
-  Client: ::1:<omitted>
+  Client: <client>:<omitted>
   
   GET /bad
   Host: localhost:<omitted>
   User-Agent: <omitted>
   Accept: */*
   
-  dream.client: ::1:<omitted>
+  dream.client: <client>:<omitted>
   dream.tls: false
   dream.request_id: <omitted>
   dream.fd: 6</pre>
@@ -32,14 +32,14 @@
   Blame: Client
   Severity: Warning
   
-  Client: ::1:<omitted>
+  Client: <client>:<omitted>
   
   GET /fail
   Host: localhost:<omitted>
   User-Agent: <omitted>
   Accept: */*
   
-  dream.client: ::1:<omitted>
+  dream.client: <client>:<omitted>
   dream.tls: false
   dream.request_id: <omitted>
   dream.fd: 6</pre>

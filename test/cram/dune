@@ -30,8 +30,10 @@
   %{bin:template-files}
   %{bin:template-logic}
   %{bin:template_stream}
-  %{bin:tyxml})
-  (setup_scripts common.sh))
+  %{bin:tyxml}
+  %{bin:bash})
+  (setup_scripts common.sh)
+  (shell bash))
 
 (env
  (_
