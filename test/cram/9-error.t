@@ -19,7 +19,7 @@
   dream.client: <client>:<omitted>
   dream.tls: false
   dream.request_id: <omitted>
-  dream.fd: 6</pre>
+  dream.fd: <omitted></pre>
   </body>
   </html>
   $ curl_cmd /fail
@@ -42,6 +42,6 @@
   dream.client: <client>:<omitted>
   dream.tls: false
   dream.request_id: <omitted>
-  dream.fd: 6</pre>
+  dream.fd: <omitted></pre>
   </body>
   </html>

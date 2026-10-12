@@ -9,7 +9,7 @@
   
   [source]: https://pixabay.com/photos/morocco-camel-desert-sand-sahara-5271734/
   $ curl_cmd /assets/camel.jpeg -o camel.jpeg
-  $ wc -c < camel.jpeg
+  $ wc -c < camel.jpeg | tr -d '[:space:]'
   61962
   $ curl_cmd /assets/not-a-file -o /dev/null -w '%{http_code}\n'
   404

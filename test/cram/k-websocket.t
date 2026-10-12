@@ -18,5 +18,5 @@
   </body>
   </html>
   
-  $ printf 'Hello?' | curl --silent --no-progress-meter --max-time 2 -N -T - ws://localhost:$DREAM_PORT/websocket | tr -cd '[:print:]'; echo
+  $ node websocket_client.js
   Good-bye!

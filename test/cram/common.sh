@@ -14,6 +14,7 @@ curl_cmd() {
     | sed 's/User-Agent: .*/User-Agent: <omitted>/' \
     | sed -E 's/(::1|127\.0\.0\.1):[0-9]*/<client>:<omitted>/' \
     | sed 's/dream.request_id: [0-9]*/dream.request_id: <omitted>/' \
+    | sed -E 's/dream\.fd: [0-9]+/dream.fd: <omitted>/' \
     | sed 's/localhost:[0-9]*/localhost:<omitted>/' \
     | sed -E 's/(in file [^,]*), line [0-9]*, characters [0-9]*-[0-9]*/\1, line <omitted>, characters <omitted>/'
 }

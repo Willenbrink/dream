@@ -69,7 +69,7 @@
   dream.client: <client>:<omitted>
   dream.tls: false
   dream.request_id: <omitted>
-  dream.fd: 6
+  dream.fd: <omitted>
   dream.params: </code></pre>
     </body>
   </html>
@@ -145,7 +145,7 @@
   dream.client: <client>:<omitted>
   dream.tls: false
   dream.request_id: <omitted>
-  dream.fd: 6
+  dream.fd: <omitted>
   dream.params: </code></pre>
     </body>
   </html>

@@ -31,7 +31,9 @@
   %{bin:template-logic}
   %{bin:template_stream}
   %{bin:tyxml}
-  %{bin:bash})
+  %{bin:bash}
+  %{bin:node}
+  websocket_client.js)
   (setup_scripts common.sh)
   (shell bash))
 
