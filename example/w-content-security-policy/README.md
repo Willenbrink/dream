@@ -3,7 +3,14 @@
 <br>
 
 The [`Content-Security-Policy`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy)
-(CSP) header controls what content your pages are allowed to load. This example
+(CSP) header is used to control where your Web pages can be embedded, and what
+content they are allowed to load.
+Interesting directives include [`script-src`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src) to help prevent cross-site scripting and  [`frame-ancestors`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors)
+to prevent a page from being loaded inside a frame, which can help
+prevent
+[clickjacking](https://cheatsheetseries.owasp.org/cheatsheets/Clickjacking_Defense_Cheat_Sheet.html).
+
+This example
 uses [`img-src 'none'`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/img-src)
 to forbid images, and has the browser report each violation back to the server:
 

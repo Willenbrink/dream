@@ -1,6 +1,3 @@
-// Minimal WebSocket client for k-websocket.t.
-// Node.js >= 22 provides a global WebSocket implementation.
-
 const url = `ws://localhost:${process.env.DREAM_PORT}/websocket`;
 const socket = new WebSocket(url);
 

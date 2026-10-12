@@ -12,18 +12,18 @@
   </body>
   </html>
   
-curl picks a random boundary, so replace it with <boundary omitted> and strip the CRLF line endings:
-  $ curl_cmd / -F 'field=field-value' | sed -E 's/^-{2,}[A-Za-z0-9]+/--<boundary omitted>/; s/\r$//'
-  --<boundary omitted>
+curl picks a random boundary, so filter it
+  $ curl_cmd / -F 'field=field-value' | sed -E 's/^-{2,}[A-Za-z0-9]+/--<omitted>/'
+  --<omitted>
   Content-Disposition: form-data; name="field"
   
   field-value
-  --<boundary omitted>--
+  --<omitted>--
   $ printf 'file-content' > file.txt
-  $ curl_cmd / -F 'file=@file.txt' | sed -E 's/^-{2,}[A-Za-z0-9]+/--<boundary omitted>/; s/\r$//'
-  --<boundary omitted>
+  $ curl_cmd / -F 'file=@file.txt' | sed -E 's/^-{2,}[A-Za-z0-9]+/--<omitted>/'
+  --<omitted>
   Content-Disposition: form-data; name="file"; filename="file.txt"
   Content-Type: text/plain
   
   file-content
-  --<boundary omitted>--
+  --<omitted>--

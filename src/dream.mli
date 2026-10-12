@@ -2136,9 +2136,8 @@ val run :
 
     - [~interface] is the network interface to listen on. Defaults to
       ["localhost"]. Use ["0.0.0.0"] to listen on all interfaces.
-    - [~port] is the port to listen on. Defaults to [8080], or the value of the
-      environment variable [DREAM_PORT], if set. [~port] takes precedence over
-      [DREAM_PORT].
+    - [~port] is the port to listen on. If not set, defaults to the value of the
+      environment variable [DREAM_PORT] and, if neither are set, falls back to [8080].
     - If [~socket_path] is specified, Dream will listen on a Unix domain socket
       at the given path, and ignore [~interface] and [~port].
     - [~stop] is a promise that causes the server to stop accepting new

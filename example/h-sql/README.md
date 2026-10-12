@@ -118,9 +118,9 @@ Both the comments and the sessions survive server restarts.
 
 <br>
 
-Dream does not handle the creation or migration of databases as this depends on your specific needs.
-For this example the `comment` and `dream_session` tables are created by `create_tables`, which runs once before `Dream.run`.
-`Dream.sql_pool`'s `~post_connect` option is for per-connection setup that must run for every connection, such as enabling `PRAGMA foreign_keys`. `Caqti` closes these connections by default after 100 uses so `post_connect` will run multiple times even when pool size is 1.
+Dream does not handle the creation or migration of databases, even for `Dream.sql_sessions`, as this depends on your specific needs and setup.
+For this example, the `comment` and `dream_session` tables are created by `create_tables` which runs once before `Dream.run`.
+`Dream.sql_pool`'s `~post_connect` option could also be used for creating the DB but is not ideal: `post_connect` runs only after the first connection is established and may run concurrently if the pool size is larger than 1. `Caqti` reused connections but closes them by default after 100 uses so `post_connect` may run multiple times even when the pool size is 1.
 
 We also had to make an addition to our
 [`dune`](https://github.com/camlworks/dream/blob/master/example/h-sql/dune)
