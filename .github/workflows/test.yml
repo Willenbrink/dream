@@ -14,9 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        # Until https://github.com/ocaml/setup-ocaml/issues/872.
-        # When fixing, search for other instances of this string in this file.
-        - ubuntu-22.04
+        - ubuntu-latest
         ocaml:
         - 5.5.x
         - 5.2.x
@@ -102,7 +100,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - ubuntu-22.04
+        - ubuntu-latest
         ocaml:
         - 5.5.x
         - 5.2.x
@@ -141,7 +139,7 @@ jobs:
         fi
 
   mirage:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
       with:
