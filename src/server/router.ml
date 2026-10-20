@@ -185,23 +185,46 @@ let path the_request =
 let set_path request path =
   Message.set_field request path_field path
 
-(* Prefix is stored backwards. *)
-let prefix_field : string list Message.field =
+(* wildcard_prefix is stored in forward order to keep it consistent with site_prefix. *)
+let wildcard_prefix_field : string list Message.field =
   Message.new_field
-    ~name:"dream.prefix"
-    ~show_value:(fun prefix -> String.concat "/" (List.rev prefix))
+    ~name:"dream.wildcard_prefix"
+    ~show_value:(fun prefix -> Formats.to_path prefix)
     ()
 
-let internal_prefix request =
-  match Message.field request prefix_field with
+let internal_wildcard_prefix request =
+  match Message.field request wildcard_prefix_field with
   | Some prefix -> prefix
   | None -> []
 
-let prefix request =
-  Formats.to_path (List.rev (internal_prefix request))
+let wildcard_prefix request =
+  Formats.to_path (internal_wildcard_prefix request)
 
-let set_prefix request prefix =
-  Message.set_field request prefix_field prefix
+let set_wildcard_prefix request prefix =
+  Message.set_field request wildcard_prefix_field prefix
+
+let site_prefix_field : string list Message.field =
+  Message.new_field
+    ~name:"dream.site_prefix"
+    ~show_value:(fun prefix -> Formats.to_path prefix)
+    ()
+
+let internal_site_prefix request =
+  match Message.field request site_prefix_field with
+  | Some prefix -> prefix
+  | None -> []
+
+let site_prefix request =
+  Formats.to_path (internal_site_prefix request)
+
+let set_site_prefix request prefix =
+  Message.set_field request site_prefix_field prefix
+
+(* The externally visible prefix of the current request. This is only used to
+   implement the deprecated [Dream.prefix]. *)
+let full_prefix request =
+  Formats.to_path
+    (internal_site_prefix request @ internal_wildcard_prefix request)
 
 let params_field : (string * string) list Message.field =
   Message.new_field
@@ -264,7 +287,8 @@ let router routes =
           when method_matches method_ (Message.method_ request) ->
         Message.set_field request params_field bindings;
         if is_wildcard then begin
-          set_prefix request prefix;
+          (* prefix was built in reverse order *)
+          set_wildcard_prefix request (List.rev prefix);
           set_path request path;
           ok handler request
         end
@@ -286,7 +310,8 @@ let router routes =
     in
 
     (* let next_prefix = Dream.next_prefix request *)
-    let prefix = internal_prefix request in
+    (* The router accumulates the prefix backwards while matching. *)
+    let prefix = List.rev (internal_wildcard_prefix request) in
     let path = path request in
 
     (* match match_site_prefix next_prefix path with

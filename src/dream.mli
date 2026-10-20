@@ -369,6 +369,11 @@ val method_ : request -> method_
 val target : request -> string
 (** Request target. For example, ["/foo/bar"]. *)
 
+val site_prefix : request -> string
+(** The site prefix of the request. This is the prefix configured with
+    {!with_site_prefix}, or ["/"] if the application is not mounted under a
+    prefix. Cookies are scoped to this prefix by default. *)
+
 (**/**)
 val prefix : request -> string
 (**/**)
@@ -1390,9 +1395,10 @@ val router : route list -> handler
         ]
     ]}
 
-    [**] causes the request's path to be trimmed by the route prefix, and the
-    request's prefix to be extended by it. It is mainly useful for “mounting”
-    {!Dream.static} as a subsite.
+    [**] causes the request's path to be trimmed by the wildcard prefix, and
+    the request's wildcard prefix to be extended by it. The next handler sees
+    only the path after [**], and the site prefix is unchanged. It is mainly
+    useful for “mounting” {!Dream.static} as a subsite.
 
     Route paths are matched against the decoded request path. In route
     literals, write decoded characters such as ["/photos/södermalm/"], not the
@@ -2233,28 +2239,28 @@ val serve :
     a fairly raw abstraction layer over low-level HTTP libraries. *)
 
 val with_site_prefix : string -> middleware
-(** Removes the given prefix from the path in each request, and adds it to the
-    request prefix. Responds with [502 Bad Gateway] if the path does not have
-    the expected prefix.
+(** Removes the given prefix from the path in each request, and stores it as the
+    request's site prefix. Responds with [502 Bad Gateway] if the path does not
+    have the expected prefix.
 
     This is for applications that are not running at the root ([/]) of their
-    domain. The default is ["/"], for no prefix. After [with_site_prefix],
-    routing is done relative to the prefix, and the prefix is also necessary for
-    emitting secure cookies.
+    domain. The default is ["/"], for no site prefix. After [with_site_prefix],
+    routing is done relative to the prefix, and the site prefix is also used as
+    the default cookie path.
 
     The middleware is a translation layer between externally visible, prefixed
     URLs and the application's internal, unprefixed world. On the way out, the
-    prefix is added to root-relative [Location] response headers, i.e. those
-    beginning with [/]. "Root-relative" means relative to the application
-    root, so the prefix is added even if the path happens to begin with the
-    same string as the prefix. This includes locations produced by
-    {!Dream.redirect}, as well as headers set directly, for example on a
-    [201 Created] response. Absolute URLs and relative references are left
+    site prefix is added to root-relative [Location] response headers, i.e.
+    those beginning with [/]. "Root-relative" means relative to the
+    application root, so the site prefix is added even if the path happens to
+    begin with the same string as the site prefix. This includes locations
+    produced by {!Dream.redirect}, as well as headers set directly, for example
+    on a [201 Created] response. Absolute URLs and relative references are left
     unchanged.
 
     URLs inside a response body, such as [<a href=/foo>] in rendered HTML, are
-    not rewritten. Generate those with the prefix already included, so that they
-    resolve correctly on clients. *)
+    not rewritten. Generate those with the site prefix already included, so
+    that they resolve correctly on clients. *)
 (* TODO Clarify that this isn't included with the built-ins, but is something on
    topic that one might want to use. *)
 
