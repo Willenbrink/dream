@@ -1377,7 +1377,11 @@ module Make
         ]
       ]}
 
-      Scopes can be nested. *)
+      Scopes can be nested.
+
+      {!scope} only groups routes within the router. To serve the entire
+      application under a different root path, use {!with_site_prefix} instead.
+      This ensures that e.g. cookies are set to the correct scope. *)
 
   val no_route : route
   (** A dummy value of type {!type-route} that is completely ignored by the
