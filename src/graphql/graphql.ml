@@ -338,8 +338,8 @@ let graphiql ?(default_query = "") graphql_endpoint =
   let html =
     lazy begin
       Dream__graphiql.content
-      |> Str.(global_replace (regexp (quote "%%ENDPOINT%%")) graphql_endpoint)
-      |> Str.(global_replace (regexp (quote "%%DEFAULT_QUERY%%")) default_query)
+      |> Stringext.replace_all ~pattern:"%%ENDPOINT%%" ~with_:graphql_endpoint
+      |> Stringext.replace_all ~pattern:"%%DEFAULT_QUERY%%" ~with_:default_query
     end
   in
 
