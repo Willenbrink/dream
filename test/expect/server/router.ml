@@ -22,6 +22,8 @@ let path request =
   |> String.concat "/"
   |> fun path -> "/" ^ path
 
+let wildcard_prefix = Dream__server.Router.wildcard_prefix
+
 
 
 let show_tokens route =
@@ -531,6 +533,55 @@ let%expect_test _ =
     /abc/def /ghi |}]
 *)
 
+(* Site and wildcard prefixes are tracked independently. *)
+
+let%expect_test _ =
+  show ~prefix:"/app" "/app/abc/def" @@ Dream.router [
+    Dream.get "/abc/**" (fun request ->
+      Printf.ksprintf Dream.respond "site=%s wildcard=%s path=%s"
+        (Dream.site_prefix request)
+        (wildcard_prefix request)
+        (path request));
+  ];
+  [%expect {|
+    Response: 200 OK
+    site=/app wildcard=/abc path=/def |}]
+
+let%expect_test _ =
+  show ~prefix:"/app" "/app/abc/def" @@ Dream.router [
+    Dream.get "/abc/def" (fun request ->
+      Printf.ksprintf Dream.respond "site=%s wildcard=%s path=%s"
+        (Dream.site_prefix request)
+        (wildcard_prefix request)
+        (path request));
+  ];
+  [%expect {|
+    Response: 200 OK
+    site=/app wildcard=/ path=/abc/def |}]
+
+let%expect_test _ =
+  show ~prefix:"/app" "/app/abc/def/ghi" @@ Dream.router [
+    Dream.scope "/abc" [] [
+      Dream.get "/:x/**" (fun request ->
+        Printf.ksprintf Dream.respond "site=%s wildcard=%s path=%s"
+          (Dream.site_prefix request)
+          (wildcard_prefix request)
+          (path request));
+    ];
+  ];
+  [%expect {|
+    Response: 200 OK
+    site=/app wildcard=/abc/def path=/ghi |}]
+
+let%expect_test _ =
+  show ~prefix:"/app" "/app/abc/def" @@ Dream.router [
+    Dream.get "/abc/**" (fun request ->
+      Dream.respond (Dream.prefix request ^ " " ^ path request));
+  ];
+  [%expect {|
+    Response: 200 OK
+    /app/abc /def |}]
+
 (* Direct subsites work. *)
 
 let%expect_test _ =
@@ -920,6 +971,25 @@ let%expect_test _ =
   [%expect {|
     Response: 200 OK
     /abc def /def |}]
+
+let%expect_test _ =
+  show ~prefix:"/app" "/app/outer/one/inner/two/rest" @@ Dream.router [
+    Dream.get "/outer/:x/**" (fun request ->
+      request
+      |> Dream.router [
+        Dream.get "/inner/:y/**" (fun request ->
+          Printf.ksprintf Dream.respond
+            "site=%s wildcard=%s x=%s y=%s path=%s"
+            (Dream.site_prefix request)
+            (wildcard_prefix request)
+            (Dream.param request "x")
+            (Dream.param request "y")
+            (path request));
+      ])
+  ];
+  [%expect {|
+    Response: 200 OK
+    site=/app wildcard=/outer/one/inner/two x=one y=two path=/rest |}]
 
 (* It's possible to match OPTIONS *. *)
 

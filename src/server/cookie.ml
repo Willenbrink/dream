@@ -48,7 +48,7 @@ let cookie
   let path =
     match path with
     | Some path -> path
-    | None -> Some (Router.prefix request)
+    | None -> Some (Router.site_prefix request)
   in
 
   let secure =
@@ -88,11 +88,10 @@ let set_cookie
     name
     value =
 
-  (* TODO Need the site prefix, not the subsite prefix! *)
   let path =
     match path with
     | Some path -> path
-    | None -> Some (Router.prefix request)
+    | None -> Some (Router.site_prefix request)
   in
 
   let secure =
