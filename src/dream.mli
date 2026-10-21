@@ -1395,10 +1395,11 @@ val router : route list -> handler
         ]
     ]}
 
-    [**] causes the request's path to be trimmed by the wildcard prefix, and
-    the request's wildcard prefix to be extended by it. The next handler sees
-    only the path after [**], and the site prefix is unchanged. It is mainly
-    useful for “mounting” {!Dream.static} as a subsite.
+    [**] causes the request's path to be trimmed up to the [**] so that the
+    next handler only sees the part of the path which matches the [**]. This
+    prefix is stored in the request and can be retrieved using
+    {!Dream.prefix}. It is mainly useful for “mounting” {!Dream.static} as a
+    subsite.
 
     Route paths are matched against the decoded request path. In route
     literals, write decoded characters such as ["/photos/södermalm/"], not the
@@ -2263,8 +2264,8 @@ val with_site_prefix : string -> middleware
     unchanged.
 
     URLs inside a response body, such as [<a href=/foo>] in rendered HTML, are
-    not rewritten. Generate those with the site prefix already included, so
-    that they resolve correctly on clients. *)
+    not rewritten. Generate those with the site prefix already included by
+    calling {!Dream.site_prefix}, so that they resolve correctly on clients. *)
 (* TODO Clarify that this isn't included with the built-ins, but is something on
    topic that one might want to use. *)
 

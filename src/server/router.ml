@@ -220,8 +220,8 @@ let site_prefix request =
 let set_site_prefix request prefix =
   Message.set_field request site_prefix_field prefix
 
-(* The externally visible prefix of the current request. This is only used to
-   implement the deprecated [Dream.prefix]. *)
+(* The externally visible prefix of the current request, used to implement
+   [Dream.prefix]. *)
 let full_prefix request =
   Formats.to_path
     (internal_site_prefix request @ internal_wildcard_prefix request)
