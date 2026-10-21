@@ -72,8 +72,6 @@ There are several examples showing Dream with Reason syntax.
 
 - [**`r-fullstack-melange`**](r-fullstack-melange#folders-and-files) &nbsp;&mdash;&nbsp;
   server *and* client written in Reason!
-- [**`w-fullstack-rescript`**](w-fullstack-rescript#folders-and-files) &nbsp;&mdash;&nbsp;
-  shares OCaml code between server and client using ReScript.
 - [**`w-fullstack-jsoo`**](w-fullstack-jsoo#folders-and-files) &nbsp;&mdash;&nbsp; shares
   OCaml code between server and client using js_of_ocaml.
 
