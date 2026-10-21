@@ -185,11 +185,11 @@ let path the_request =
 let set_path request path =
   Message.set_field request path_field path
 
-(* wildcard_prefix is stored in forward order to keep it consistent with site_prefix. *)
+(* Wildcard prefix is stored backwards. *)
 let wildcard_prefix_field : string list Message.field =
   Message.new_field
     ~name:"dream.wildcard_prefix"
-    ~show_value:(fun prefix -> Formats.to_path prefix)
+    ~show_value:(fun prefix -> String.concat "/" (List.rev prefix))
     ()
 
 let internal_wildcard_prefix request =
@@ -198,11 +198,12 @@ let internal_wildcard_prefix request =
   | None -> []
 
 let wildcard_prefix request =
-  Formats.to_path (internal_wildcard_prefix request)
+  Formats.to_path (List.rev (internal_wildcard_prefix request))
 
 let set_wildcard_prefix request prefix =
   Message.set_field request wildcard_prefix_field prefix
 
+(* Site prefix is stored forwards *)
 let site_prefix_field : string list Message.field =
   Message.new_field
     ~name:"dream.site_prefix"
@@ -224,7 +225,8 @@ let set_site_prefix request prefix =
    [Dream.prefix]. *)
 let full_prefix request =
   Formats.to_path
-    (internal_site_prefix request @ internal_wildcard_prefix request)
+    (internal_site_prefix request
+     @ List.rev (internal_wildcard_prefix request))
 
 let params_field : (string * string) list Message.field =
   Message.new_field
@@ -288,7 +290,7 @@ let router routes =
         Message.set_field request params_field bindings;
         if is_wildcard then begin
           (* prefix was built in reverse order *)
-          set_wildcard_prefix request (List.rev prefix);
+          set_wildcard_prefix request prefix;
           set_path request path;
           ok handler request
         end
@@ -311,7 +313,7 @@ let router routes =
 
     (* let next_prefix = Dream.next_prefix request *)
     (* The router accumulates the prefix backwards while matching. *)
-    let prefix = List.rev (internal_wildcard_prefix request) in
+    let prefix = internal_wildcard_prefix request in
     let path = path request in
 
     (* match match_site_prefix next_prefix path with
