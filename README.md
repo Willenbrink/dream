@@ -45,8 +45,8 @@ Dream is **one flat module** in **one package**, documented on
   proxy.
 - Helpers for [**secure cookies**][cookies] and
   [**CSRF-safe forms**][forms].
-- **Full-stack ML** with clients compiled by [**Melange**][melange],
-  [**ReScript**][rescript], or [**js_of_ocaml**][jsoo].
+- **Full-stack ML** with clients compiled by [**Melange**][melange] or
+  [**js_of_ocaml**][jsoo].
 
 <br>
 
@@ -105,7 +105,6 @@ into.
 [crypto]: https://camlworks.github.io/dream/#cryptography
 [logging]: https://github.com/camlworks/dream/tree/master/example/2-middleware#folders-and-files
 [melange]: https://github.com/camlworks/dream/tree/master/example/r-fullstack-melange#folders-and-files
-[rescript]: https://github.com/camlworks/dream/tree/master/example/w-fullstack-rescript#folders-and-files
 [jsoo]: https://github.com/camlworks/dream/tree/master/example/w-fullstack-jsoo#folders-and-files
 [types]: https://camlworks.github.io/dream/#types
 [basic-read]: https://camlworks.github.io/dream/#val-body
@@ -175,8 +174,7 @@ esy`, and started with `npx esy start`.
 - [**Reason syntax**][reason-examples] &mdash; Several of the examples are
   written in Reason. See [**`r-hello`**][r-hello].
 - [**Full-stack**][fullstack] &mdash; See skeleton projects
-  [**`r-fullstack-melange`**][melange], [**`w-fullstack-rescript`**][rescript],
-  and [**`w-fullstack-jsoo`**][jsoo].
+  [**`r-fullstack-melange`**][melange] and [**`w-fullstack-jsoo`**][jsoo].
 - [**Deploying**][deploying] &mdash; Quick start instructions for
   small-to-medium deployments.
 - [**Examples**][examples] &mdash; These cover various HTTP scenarios.
