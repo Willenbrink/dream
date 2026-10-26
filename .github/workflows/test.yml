@@ -28,8 +28,6 @@ jobs:
     runs-on: ${{matrix.os}}
     steps:
     - uses: actions/checkout@v4
-      with:
-        submodules: recursive
 
     - uses: ocaml/setup-ocaml@v3
       with:
@@ -103,8 +101,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-      with:
-        submodules: recursive
     - run: mkdir ../repo-copy
     - run: cp -r * ../repo-copy/
     - uses: ocaml/setup-ocaml@v3
