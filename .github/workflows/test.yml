@@ -45,11 +45,6 @@ jobs:
     - run: brew install postgresql@15 && brew link --overwrite postgresql@15
       if: runner.os == 'macOS'
 
-    # Workaround https://github.com/savonet/ocaml-ssl/issues/155 and/or
-    # https://github.com/ocaml/setup-ocaml/issues/856.
-    - run: opam pin add ssl 0.6.0 --no-action
-      if: runner.os == 'Windows'
-
     # OpenSSL 4 no longer has SSLv3, which breaks SSLv23 contexts. Workaround
     # until https://github.com/savonet/ocaml-ssl/pull/189 is merged and released.
     - run: opam pin add ssl "git+https://github.com/balat/ocaml-ssl.git#b9088ef7ac27f594d399867c45d00e8055d527fa" --no-action
