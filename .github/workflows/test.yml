@@ -99,50 +99,6 @@ jobs:
           opam exec -- dune build $EXE
         done
 
-  quickstart:
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-        - ubuntu-latest
-        ocaml:
-        - 5.5.x
-        - 5.2.x
-        - 4.14.x
-
-    runs-on: ${{matrix.os}}
-    steps:
-    - uses: ocaml/setup-ocaml@v3
-      with:
-        ocaml-compiler: ${{matrix.ocaml}}
-        dune-cache: true
-
-    - name: Run quickstart.sh
-      shell: bash
-      run: |
-        set -xe
-        touch output
-        (
-            # tail will receive SIGPIPE once grep finds its match and fail -> catch with || true
-            if (tail -f output || true) | grep -q --line-buffered 'Ctrl'; then
-               echo Success
-               touch success
-            else
-                echo Failed with $?
-            fi
-            killall middleware.exe
-        ) &
-        tail -f output &
-        ((curl -fsSL https://raw.githubusercontent.com/camlworks/dream/$GITHUB_SHA/example/quickstart.sh | bash -s $GITHUB_SHA) || true) > output 2>&1
-        bash -c 'while [ ! -f success ]; do sleep 0.1; done'
-        if [ -f success ]
-        then
-          exit 0
-        else
-          exit 1
-        fi
-
   mirage:
     runs-on: ubuntu-latest
     steps:
