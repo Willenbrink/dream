@@ -27,12 +27,11 @@ jobs:
 
     runs-on: ${{matrix.os}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - uses: ocaml/setup-ocaml@v3
       with:
         ocaml-compiler: ${{matrix.ocaml}}
-        dune-cache: true
 
     # bisect_ppx is currently unmaintained and does not support OCaml 5.5 / ppxlib >= 0.36.0.
     # See this PR https://github.com/aantron/bisect_ppx/pull/448
@@ -95,13 +94,12 @@ jobs:
   mirage:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - run: mkdir ../repo-copy
     - run: cp -r * ../repo-copy/
     - uses: ocaml/setup-ocaml@v3
       with:
         ocaml-compiler: 4.14.x
-        dune-cache: true
     - run: opam install --yes --deps-only ./dream-pure.opam ./dream-httpaf.opam ./dream.opam ./dream-mirage.opam
     - run: opam install --yes mirage mirage-ptime mirage-crypto-rng-mirage
     - run: cd example/w-mirage && mv config.ml config.ml.backup
