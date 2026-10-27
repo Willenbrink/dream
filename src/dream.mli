@@ -689,6 +689,28 @@ val body : 'a message -> string promise
 val set_body : 'a message -> string -> unit
 (** Replaces the body. *)
 
+val body_size_limit : int -> middleware
+(** Rejects requests whose body is larger than the given number of bytes,
+    responding with [413 Payload Too Large].
+
+    If the request advertises a [Content-Length:] that exceeds the limit, it is
+    rejected immediately, without reading the body. Otherwise, the limit is
+    enforced as the body is read: a request that streams more than the limit
+    (for example with [Transfer-Encoding: chunked]) is rejected once the total
+    number of bytes read passes it, so no more than the limit, plus one chunk,
+    is ever buffered.
+
+    The limit applies to each downstream read of the body, including
+    {!Dream.body}, {!Dream.read}, and {!Dream.form}. A handler that never reads
+    the body is not affected. Place this middleware outside any handler that
+    reads request bodies:
+
+    {[
+      Dream.run
+      @@ Dream.body_size_limit 1_000_000
+      @@ my_app
+    ]} *)
+
 
 
 (** {1 Streams} *)
