@@ -698,8 +698,10 @@ val body_size_limit : int -> middleware
 
     Raises [Invalid_argument] if the limit is negative.
 
-    {!Dream.body_size_limit} is part of the built-in middlewares to enforce a server-wide limit. See the parameter [~max_body_size] of {!Dream.run} or
-    {!Dream.serve}. If multiple {!Dream.body_size_limit}s are used the lowest limit among them is enforced. *)
+    {!Dream.body_size_limit} is installed by {!Dream.run} or {!Dream.serve}
+    to enforce the server-wide limit configured with [~max_body_size].
+    If multiple {!Dream.body_size_limit}s are used,
+    the lowest limit among them is enforced. *)
 
 
 
@@ -2198,9 +2200,9 @@ val run :
     - [~builtins:false] disables {!section-builtin}.
     - [~max_body_size] sets a server-wide request body size limit.
       See {!Dream.body_size_limit} for more details.
-      Defaults to 10 MiB. Pass [~max_body_size:None] to disable the limit. The limit is
-      applied by the built-in middleware, so it has no effect with
-      [~builtins:false].
+      Defaults to 10 MiB. Pass [~max_body_size:None] to disable the limit.
+      This is applied independently of [~builtins], so setting a limit with
+      [~builtins:false] still enforces it.
 
     The remaining arguments can be used to gradually disable convenience
     features of [Dream.run]. If these are disabled, you may as well switch to
@@ -2258,9 +2260,6 @@ val serve :
       @@ Dream.catch ~error_handler
       @@ my_app
     ]}
-
-    When [~max_body_size] is passed to {!Dream.run} or {!Dream.serve}, the
-    built-in middleware also includes {!Dream.body_size_limit}.
 
     The middleware can be replaced with work-alikes, or omitted to use Dream as
     a fairly raw abstraction layer over low-level HTTP libraries. *)
