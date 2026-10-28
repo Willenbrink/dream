@@ -693,23 +693,13 @@ val body_size_limit : int -> middleware
 (** Rejects requests whose body is larger than the given number of bytes,
     responding with [413 Payload Too Large].
 
-    If the request advertises a [Content-Length:] that exceeds the limit, it is
-    rejected immediately, without reading the body. Otherwise, the limit is
-    enforced as the body is read: a request that streams more than the limit
-    (for example with [Transfer-Encoding: chunked]) is rejected once the total
-    number of bytes read passes it, so no more than the limit, plus one chunk,
-    is ever buffered.
+    For streamed requests, the limit is enforced as the body is
+    read so a handler that doesn't read the body will not trigger the limit. Once the limit is reached, the body is closed and discarded.
 
-    The limit applies to each downstream read of the body, including
-    {!Dream.body}, {!Dream.read}, and {!Dream.form}. A handler that never reads
-    the body is not affected. Place this middleware outside any handler that
-    reads request bodies:
+    Raises [Invalid_argument] if the limit is negative.
 
-    {[
-      Dream.run
-      @@ Dream.body_size_limit 1_000_000
-      @@ my_app
-    ]} *)
+    {!Dream.body_size_limit} is part of the built-in middlewares to enforce a server-wide limit. See the parameter [~max_body_size] of {!Dream.run} or
+    {!Dream.serve}. If multiple {!Dream.body_size_limit}s are used the lowest limit among them is enforced. *)
 
 
 
@@ -2162,6 +2152,7 @@ val run :
   ?certificate_file:string ->
   ?key_file:string ->
   ?builtins:bool ->
+  ?max_body_size:int option ->
   ?greeting:bool ->
   ?adjust_terminal:bool ->
   ?ignore_sigpipe:bool ->
@@ -2205,6 +2196,11 @@ val run :
       you are using [~tls], don't provide [~certificate_file] and [~key_file],
       and [~interface] is not ["localhost"].
     - [~builtins:false] disables {!section-builtin}.
+    - [~max_body_size] sets a server-wide request body size limit.
+      See {!Dream.body_size_limit} for more details.
+      Defaults to 10 MiB. Pass [~max_body_size:None] to disable the limit. The limit is
+      applied by the built-in middleware, so it has no effect with
+      [~builtins:false].
 
     The remaining arguments can be used to gradually disable convenience
     features of [Dream.run]. If these are disabled, you may as well switch to
@@ -2230,6 +2226,7 @@ val serve :
   ?certificate_file:string ->
   ?key_file:string ->
   ?builtins:bool ->
+  ?max_body_size:int option ->
   ?ignore_sigpipe:bool ->
     handler -> unit promise
 (** Like {!Dream.run}, but returns a promise that does not resolve until the
@@ -2261,6 +2258,9 @@ val serve :
       @@ Dream.catch ~error_handler
       @@ my_app
     ]}
+
+    When [~max_body_size] is passed to {!Dream.run} or {!Dream.serve}, the
+    built-in middleware also includes {!Dream.body_size_limit}.
 
     The middleware can be replaced with work-alikes, or omitted to use Dream as
     a fairly raw abstraction layer over low-level HTTP libraries. *)

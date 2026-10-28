@@ -5,6 +5,7 @@
 
 
 
+module Body_size_limit = Dream__server.Body_size_limit
 module Catch = Dream__server.Catch
 module Helpers = Dream__server.Helpers
 module Log = Dream__server.Log
@@ -425,11 +426,17 @@ let check_headers_middleware next_handler request =
       log ~request "A response header is empty or contains only whitespace");
   Lwt.return response
 
-let built_in_middleware error_handler =
-  Message.pipeline [
-    check_headers_middleware;
-    Catch.catch (Error_handler.app error_handler);
-  ]
+let built_in_middleware error_handler max_body_size =
+  let body_size_limit =
+    match max_body_size with
+    | None -> []
+    | Some max_body_size -> [Body_size_limit.body_size_limit max_body_size]
+  in
+  Message.pipeline (
+    [ check_headers_middleware;
+      Catch.catch (Error_handler.app error_handler);
+    ]
+    @ body_size_limit)
 
 let serve_with_details
     caller_function_for_error_messages
@@ -441,6 +448,7 @@ let serve_with_details
     ~certificate_file
     ~key_file
     ~builtins
+    ?max_body_size
     user's_dream_handler =
 
   (* TODO DOC *)
@@ -448,7 +456,7 @@ let serve_with_details
 
   let user's_dream_handler =
     if builtins then
-      built_in_middleware error_handler user's_dream_handler
+      built_in_middleware error_handler max_body_size user's_dream_handler
     else
       user's_dream_handler
   in
@@ -537,6 +545,7 @@ let serve_with_maybe_https
     ?certificate_file ?key_file
     ?certificate_string ?key_string
     ~builtins
+    ?max_body_size
     user's_dream_handler =
 
   try%lwt
@@ -562,6 +571,7 @@ let serve_with_maybe_https
         ~certificate_file:""
         ~key_file:""
         ~builtins
+        ?max_body_size
         user's_dream_handler
 
     | `OpenSSL | `OCaml_TLS as tls_library ->
@@ -627,6 +637,7 @@ let serve_with_maybe_https
           ~certificate_file
           ~key_file
           ~builtins
+          ?max_body_size
           user's_dream_handler
 
       | `Memory (certificate_string, key_string, verbose_or_silent) ->
@@ -655,6 +666,7 @@ let serve_with_maybe_https
           ~certificate_file
           ~key_file
           ~builtins
+          ?max_body_size
           user's_dream_handler
 
         end
@@ -673,6 +685,7 @@ let serve_with_maybe_https
 
 let default_interface = "localhost"
 let default_port = 8080
+let default_max_body_size = 10 * 1024 * 1024
 
 (* Lazy option default to avoid side effects. *)
 let option_or opt default = match opt with
@@ -712,6 +725,7 @@ let serve
     ?certificate_file
     ?key_file
     ?(builtins = true)
+    ?(max_body_size = Some default_max_body_size)
     ?(ignore_sigpipe = true)
     user's_dream_handler =
 
@@ -730,6 +744,7 @@ let serve
     ?certificate_string:None
     ?key_string:None
     ~builtins
+    ?max_body_size
     user's_dream_handler
 
 
@@ -744,6 +759,7 @@ let run
     ?certificate_file
     ?key_file
     ?(builtins = true)
+    ?(max_body_size = Some default_max_body_size)
     ?(greeting = true)
     ?adjust_terminal
     ?(ignore_sigpipe = true)
@@ -791,5 +807,6 @@ let run
       ?certificate_file ?key_file
       ?certificate_string:None ?key_string:None
       ~builtins
+      ?max_body_size
       user's_dream_handler
   end
