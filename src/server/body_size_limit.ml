@@ -46,22 +46,26 @@ let declared_length request =
   | None -> None
   | Some value -> int_of_string_opt (String.trim value)
 
-let body_size_limit max_length next_handler request =
-  let too_large () =
-    Helpers.respond ~status:`Payload_Too_Large ""
-  in
-  match declared_length request with
-  (* Fast path: reject on the advertised length without reading the body. *)
-  | Some length when length > max_length -> too_large ()
-  | _ ->
-    let limited =
-      Stream.stream
-        (limit_reader max_length (Message.server_stream request))
-        Stream.no_writer
+let body_size_limit max_length =
+  if max_length < 0 then
+    invalid_arg "Dream.body_size_limit: negative limit";
+
+  fun next_handler request ->
+    let too_large () =
+      Helpers.respond ~status:`Payload_Too_Large ""
     in
-    Message.set_server_stream request limited;
-    Lwt.catch
-      (fun () -> next_handler request)
-      (function
-        | Payload_too_large -> too_large ()
-        | exn -> Lwt.fail exn)
+    match declared_length request with
+    (* Fast path: reject on the advertised length without reading the body. *)
+    | Some length when length > max_length -> too_large ()
+    | _ ->
+      let limited =
+        Stream.stream
+          (limit_reader max_length (Message.server_stream request))
+          Stream.no_writer
+      in
+      Message.set_server_stream request limited;
+      Lwt.catch
+        (fun () -> next_handler request)
+        (function
+          | Payload_too_large -> too_large ()
+          | exn -> Lwt.fail exn)

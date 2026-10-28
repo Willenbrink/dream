@@ -57,3 +57,14 @@ let%expect_test _ =
 let%expect_test _ =
   run ~handler:ignore_handler ~limit:5 "hello, world!";
   [%expect {| 200 ok |}]
+
+(* A negative limit is rejected when the middleware is constructed. *)
+let%expect_test _ =
+  (match
+     Dream.test
+       (Dream.body_size_limit (-1) echo_handler)
+       (Dream.request "hello")
+   with
+   | _ -> print_endline "accepted"
+   | exception Invalid_argument message -> print_endline message);
+  [%expect {| Dream.body_size_limit: negative limit |}]
