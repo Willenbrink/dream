@@ -1839,7 +1839,10 @@ module Make
       This is for applications that are not running at the root ([/]) of their
       domain. The default is ["/"], for no site prefix. After
       [with_site_prefix], routing is done relative to the prefix, and the site
-      prefix is also used as the default cookie path.
+      prefix is also used as the default cookie path. HTTP treats an empty path
+      as equivalent to [/]. For consistency, a request for the prefix itself,
+      such as [/prefix], is treated as the application root [/], just like
+      [/prefix/].
 
       The middleware is a translation layer between externally visible, prefixed
       URLs and the application's internal, unprefixed world. On the way out, the
