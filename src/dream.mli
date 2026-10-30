@@ -1508,12 +1508,10 @@ val trailing_slash :
 
     The policies are:
     - [`Strict] leaves [/foo] and [/foo/] as distinct paths.
-    - [`Drop] rewrites [/foo/] to [/foo] internally, then runs the handler.
-    - [`Append] rewrites [/foo] to [/foo/] internally, then runs the handler.
-    - [`Redirect_drop] redirects [/foo/] to [/foo] with [301 Moved
-      Permanently].
-    - [`Redirect_append] redirects [/foo] to [/foo/] with [301 Moved
-      Permanently].
+    - [`Drop] rewrites [/foo/] to [/foo] internally, then runs the next handler.
+    - [`Append] rewrites [/foo] to [/foo/] internally, then runs the next handler.
+    - [`Redirect_drop] redirects [/foo/] to [/foo].
+    - [`Redirect_append] redirects [/foo] to [/foo/].
 
     {[
       let () =
@@ -1535,11 +1533,10 @@ val trailing_slash :
     to preserve the request method and body (e.g. for a [POST]). It is ignored
     by [`Strict], [`Drop], and [`Append].
 
-    The root path [/] is never modified. Place this middleware inside
-    this middleware inside {!with_site_prefix} so that redirect locations get
-    the site prefix. The [`Drop] and [`Append] policies assume the application
-    declares its routes in the matching canonical form (without or with the
-    trailing slash, respectively). *)
+    The root path [/] is never modified. The
+    [`Drop] and [`Append] policies assume the application declares its routes in
+    the matching canonical form (without or with the trailing slash,
+    respectively). *)
 
 
 
@@ -2294,7 +2291,9 @@ val with_site_prefix : string -> middleware
     This is for applications that are not running at the root ([/]) of their
     domain. The default is ["/"], for no site prefix. After [with_site_prefix],
     routing is done relative to the prefix, and the site prefix is also used as
-    the default cookie path.
+    the default cookie path. HTTP treats an empty path as equivalent to [/]. For
+    consistency, a request for the prefix itself, such as [/prefix], is treated
+    as the application root [/], just like [/prefix/].
 
     The middleware is a translation layer between externally visible, prefixed
     URLs and the application's internal, unprefixed world. On the way out, the

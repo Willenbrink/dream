@@ -23,10 +23,7 @@ let has_trailing_slash path =
   | "" :: _ -> true
   | _ -> false
 
-(* Build a redirect to the canonical form, preserving the query string. The
-   location is root-relative and, like any [Dream.redirect] location, has the
-   site prefix prepended by [with_site_prefix] on the way out, so this
-   middleware must be placed inside [with_site_prefix]. *)
+(* Build a redirect to the canonical form, preserving the query string. *)
 let redirect_to_canonical ?status request canonical_path =
   let status =
     match status with
