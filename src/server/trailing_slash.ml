@@ -11,13 +11,6 @@ module Status = Dream_pure.Status
    middleware lets an application pick a softer, uniform policy for the part of
    the site it is applied to. *)
 
-(* The root path is [[""]] (and the asterisk-form / empty target is [[]]).
-   Neither has a "trailing" slash that can be dropped, and the root must never
-   be rewritten to the empty path, so both are left untouched by every policy. *)
-let is_root = function
-  | [] | [""] -> true
-  | _ -> false
-
 let has_trailing_slash path =
   match List.rev path with
   | "" :: _ -> true
@@ -41,7 +34,11 @@ let trailing_slash ?status
     (policy : [< `Strict | `Drop | `Append | `Redirect_drop | `Redirect_append])
     next_handler request =
   let path = Router.path request in
-  if is_root path then
+  if Message.target request = "*" || path = [] || path = [""] then
+    (* The asterisk-form target is not a path. Check the target rather than
+       [path = ["*"]], since [/%2A] also decodes to that path. The root path
+       has no trailing slash to drop and must not be rewritten to the empty
+       path. *)
     next_handler request
   else
     let trailing = has_trailing_slash path in

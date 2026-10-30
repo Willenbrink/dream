@@ -1533,7 +1533,7 @@ val trailing_slash :
     to preserve the request method and body (e.g. for a [POST]). It is ignored
     by [`Strict], [`Drop], and [`Append].
 
-    The root path [/] is never modified. The
+    The root path [/] and the asterisk-form target [*] are never modified. The
     [`Drop] and [`Append] policies assume the application declares its routes in
     the matching canonical form (without or with the trailing slash,
     respectively). *)
